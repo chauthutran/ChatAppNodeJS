@@ -35,7 +35,6 @@ if( username != undefined )
 	$("#curUserIcon").css("color", "#" + invertColor( randomColor ));
 
 	
-
 	try
 	{
 		console.log("username: " + username );

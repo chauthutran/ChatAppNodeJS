@@ -336,4 +336,5 @@ input.nosubmit {
 .emoji-dashboard ul li {
   margin: 5px 15px;
   cursor: pointer;
+  font-size: 20px;
 }
