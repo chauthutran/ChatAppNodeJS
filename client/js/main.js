@@ -25,7 +25,6 @@ for( var i=0; i<emojiCodes.length; i++ )
 
 if( username != undefined )
 {
-
 	$("#curUsername").html( username );
 
 	// For curUser icon background-color
@@ -208,7 +207,6 @@ if( username != undefined )
 	});
 
 	$(document).click(function(e){
-console.log("$(document).");
 		$(".emoji-dashboard").slideUp('fast');
 	});
 	
