@@ -10,7 +10,11 @@ import {
     onValue,
     onChildAdded,
     query,
-    startAt
+    startAt,
+    endAt,
+    orderByKey,
+    orderByValue,
+    orderByChild,
 } from "https://www.gstatic.com/firebasejs/9.6.6/firebase-database.js";
 
 
@@ -26,28 +30,113 @@ import {
      measurementId: "G-CXN36TRL6T"
   };
 
+// Get username and room from URL
+const username = getParamValueFromURL("username");
+let chatWith;
+
  // Initialize Firebase
- const app = initializeApp(firebaseConfig);
- const database = getDatabase(app);
+const app = initializeApp(firebaseConfig);
+const database = getDatabase(app);
+
+
+// For curUser icon background-color
+$("#curUsername").html( username );
+
+var randomColor = Math.floor(Math.random()*16777215).toString(16);
+$("#curUserIcon").html( username.substring( 0, 2 ).toUpperCase() );
+$("#curUserIcon").css("backgroundColor", "#" + randomColor);
+$("#curUserIcon").css("color", "#" + invertColor( randomColor ));
 
 
 
+const getUserInfoRef = ref(database, `users/${username}`);
+onValue(getUserInfoRef, (snapshot) => {
+  const data = snapshot.val();
+  const contacts = data.contacts;
+  for( var i=0;i<contacts.length; i++ )
+  {
+    const firstChar = contacts[i].substring(0, 2).toUpperCase();
+    var userTag = $(`<li class="clearfix" username="${contacts[i]}">
+            <div class="user-icon">${firstChar}</div>
+            <div class="about">
+            <div class="name">${contacts[i]}</div>
+            <div class="status">
+                <i class="fa fa-circle online"></i> online
+            </div>
+            </div>
+        </li>`);
+
+    selectUser( userTag );
+
+    $('#users').prepend( userTag );
+  }
+  console.log(data);
+});
 
 
+function selectUser( userTag ) {
+    userTag.click(function(e){
+        chatWith = userTag.attr("username");
+        $(".chat-with").html(`Chat with ${chatWith}`);
 
-//  const dbRef = ref(getDatabase());
-//  get(child(dbRef, `users`)).then((snapshot) => {
-//     if (snapshot.exists()) {
-//       console.log(snapshot.val());
 
-//     //   const friends = snapshot.val().friends.split(", ");
+        
+        const msgList = query(ref(database, 'messages'), orderByChild("time"));
+        onValue(msgList, (snapshotList) => {
+            $('.chat-history').find("ul").html("");
+console.log("selectUser");
+            const keys = Object.keys( snapshotList.val() );
+            for( var i in keys )
+            {
+              const data = snapshotList.val()[keys[i]];
 
-//     } else {
-//       console.log("No data available");
-//     }
-//   }).catch((error) => {
-//     console.error(error);
-//   });
+              if( ( data.sender == username && data.receiver == chatWith ) 
+              || ( data.sender == chatWith && data.receiver == username ) )
+                {
+                    var divData = `<li class="clearfix">
+                                    <div class="message-data align-right">
+                                    <span class="message-data-time" >${data.time}</span> &nbsp; &nbsp;
+                                    <span class="message-data-name" >${data.sender}</span> <i class="fa fa-circle me"></i>
+                                    
+                                    </div>
+                                    <div class="message other-message float-right">
+                                        ${data.text}
+                                    </div>
+                                </li>`;
+            
+                    var d1 = $('.chat-history').find("ul");
+                    d1.append(divData);
+                }
+                
+            }
+            const msgNo = $('.chat-history').find("ul > li").length;
+            $(".chat-num-messages").html(`already ${msgNo} messages`);
+          });
+
+        //
+    });
+}
+
+
+// $('#users').html("");
+// const usersRef = query(ref(database, 'users'), orderByChild("contacts/0"), startAt(username));
+// onChildAdded(usersRef, (data) => {
+   
+//     const userInfo = data.val();
+//     const firstChar = userInfo.fullName.substring(0, 2).toUpperCase();
+//     var userTag = $(`<li class="clearfix">
+//             <div class="user-icon">${firstChar}</div>
+//             <div class="about">
+//             <div class="name">${userInfo.fullName}</div>
+//             <div class="status">
+//                 <i class="fa fa-circle online"></i> online
+//             </div>
+//             </div>
+//         </li>`);
+
+//     $('#users').prepend( userTag );
+// });
+
 
 
 // Add Emoji in Emoji Dashboard
@@ -60,16 +149,6 @@ for( var i=0; i<emojiCodes.length; i++ )
 	$("#emojiDashboard").find("ul").append(liTag);
 }
 
-// Get username and room from URL
-const username = getParamValueFromURL("username");
-
-// For curUser icon background-color
-$("#curUsername").html( username );
-
-var randomColor = Math.floor(Math.random()*16777215).toString(16);
-$("#curUserIcon").html( username.charAt(0).toUpperCase() );
-$("#curUserIcon").css("backgroundColor", "#" + randomColor);
-$("#curUserIcon").css("color", "#" + invertColor( randomColor ));
 
 
 
@@ -80,30 +159,33 @@ function submitChatMessage() {
      var message = $("#msg").val();
      const id = push(child(ref(database), 'messages')).key;
 
-     const data = formatMessage( username, message);
+     const data = formatMessage( username, chatWith, message);
      set(ref(database, 'messages/' + id), data );
      $("#msg").val("");
 
  }
 
-const newMsg = ref(database, 'messages/');
+const newMsg = ref(database, 'messages');
 
-onChildAdded(newMsg, (data) => {
-
-        var divData = `<li class="clearfix">
-                        <div class="message-data align-right">
-                        <span class="message-data-time" >${data.val().time}</span> &nbsp; &nbsp;
-                        <span class="message-data-name" >${data.val().username}</span> <i class="fa fa-circle me"></i>
+// onChildAdded(newMsg, (data) => {
+//     if( ( data.val().sender == username && data.val().receiver == chatWith ) 
+//         || ( data.val().sender == chatWith && data.val().receiver == username ) )
+//     {
+//         var divData = `<li class="clearfix">
+//                         <div class="message-data align-right">
+//                         <span class="message-data-time" >${data.val().time}</span> &nbsp; &nbsp;
+//                         <span class="message-data-name" >${data.val().sender}</span> <i class="fa fa-circle me"></i>
                         
-                        </div>
-                        <div class="message other-message float-right">
-                            ${data.val().text}
-                        </div>
-                    </li>`;
+//                         </div>
+//                         <div class="message other-message float-right">
+//                             ${data.val().text}
+//                         </div>
+//                     </li>`;
 
-        var d1 = $('.chat-history').find("ul");
-        d1.append(divData);
-});
+//         var d1 = $('.chat-history').find("ul");
+//         d1.append(divData);
+//     }
+// });
 
 
 // ---------------------------------------------------------------------------
