@@ -81,16 +81,32 @@ if( username != undefined )
 		
 {/*  */}
 				
-			var messageTag = $(`<li class="clearfix">
-				<div class="message-data align-right">
-					<span class="message-data-time" >${moment().format('h:mm a')}</span> &nbsp; &nbsp;
-					<span class="message-data-name" >${username}</span> <i class="fa fa-circle me"></i>
-				</div>
-				<div class="message other-message float-right">
-					<img style="width: 300px;" src="http://localhost:3000/${event.detail.name}">
-				</div>
-			</li>`)
-			$('.chat-history').find("ul").append( messageTag );
+			if( event.file.type.indexOf("image/") == 0  )
+			{
+				var messageTag = $(`<li class="clearfix">
+					<div class="message-data align-right">
+						<span class="message-data-time" >${moment().format('h:mm a')}</span> &nbsp; &nbsp;
+						<span class="message-data-name" >${username}</span> <i class="fa fa-circle me"></i>
+					</div>
+					<div class="message other-message float-right">
+						<img style="width: 300px;" src="http://localhost:3000/${event.detail.name}">
+					</div>
+				</li>`)
+				$('.chat-history').find("ul").append( messageTag );
+			}
+			else
+			{
+				var messageTag = $(`<li class="clearfix">
+					<div class="message-data align-right">
+						<span class="message-data-time" >${moment().format('h:mm a')}</span> &nbsp; &nbsp;
+						<span class="message-data-name" >${username}</span> <i class="fa fa-circle me"></i>
+					</div>
+					<div class="message other-message float-right">
+						<a href="http://localhost:3000/${event.detail.name}" target="_blank">${event.detail.name}</a>
+					</div>
+				</li>`)
+				$('.chat-history').find("ul").append( messageTag );
+			}
 		
 
 		});
