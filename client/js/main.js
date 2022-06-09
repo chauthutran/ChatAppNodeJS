@@ -78,20 +78,21 @@ if( username != undefined )
 		//   });
 		//   var div = document.getElementById("images");
 
-		// 	var messageTag = $(`<li class="clearfix">
-		// 		<div class="message-data align-right">
-		// 		<span class="message-data-time" >${message.time}</span> &nbsp; &nbsp;
-		// 		<span class="message-data-name" >${message.username}</span> <i class="fa fa-circle me"></i>
+		
+{/*  */}
 				
-		// 		</div>
-		// 		<div class="message other-message float-right">
-		// 			${message.text}
-		// 		</div>
-		// 	</li>`)
-		// 	$('.chat-history').find("ul").append( messageTag );
+			var messageTag = $(`<li class="clearfix">
+				<div class="message-data align-right">
+					<span class="message-data-time" >${moment().format('h:mm a')}</span> &nbsp; &nbsp;
+					<span class="message-data-name" >${username}</span> <i class="fa fa-circle me"></i>
+				</div>
+				<div class="message other-message float-right">
+					<img style="width: 300px;" src="http://localhost:3000/${event.detail.name}">
+				</div>
+			</li>`)
+			$('.chat-history').find("ul").append( messageTag );
 		
-		//   div.appendChild(img);
-		
+
 		});
 
 	  // ---------------------------------------------------------------------------

@@ -43,7 +43,9 @@ const io = require("socket.io")(server, {
 
 app.use(express.static(__dirname + '/uploads'))
 app.get('/', (req, res) => {
-    res.sendFile(__dirname + "/index.html")
+    // res.sendFile(__dirname + "/index.html")
+    console.log(req.query.path);
+    res.sendFile(__dirname + "/uploads/" + req.query.path);
 })
 app.get('/deleteimage', (req, res) => {
     console.log(req.query);
@@ -65,10 +67,9 @@ io.on('connection', socket => {
   // Do something when a file is saved:
   uploader.on("saved", function (event) {
       event.file.clientDetail.name = event.file.name; 
-      event.file.clientDetail.fullPath = `http://localhost:3000/uploads/${event.file.name}`; 
-      // socket.emit('message', formatMessage(username, `http://localhost:3000/uploads/${event.file.name}` ) );
+      // event.file.clientDetail.fullPath = `http://localhost:3000/${event.file.name}`; 
+      // socket.emit('message', formatMessage(username, `http://localhost:3000/${event.file.name}` ) );
 
-      // io.sockets.emit('message',{message:'new file <a target="_blank" href="">here</a>'});
   });
 
   // Error handler:
