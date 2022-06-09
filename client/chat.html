@@ -12,6 +12,18 @@
 
 </head>
 <body>
+
+  <p>
+    <label
+      >Choose File:
+      <input type="file" id="upload_input" multiple accept="image/*"
+    /></label>
+  </p>
+  <div id="images"></div>
+
+
+
+
 <!-- partial:index.partial.html -->
 <div class="container clearfix">
     <div class="people-list" id="people-list">
@@ -211,6 +223,7 @@
 	integrity="sha256-TDxXjkAUay70ae/QJBEpGKkpVslXaHHayklIVglFRT4="
 	crossorigin="anonymous"
 ></script>
+<script src="https://cdn.jsdelivr.net/npm/socketio-file-upload@0.7.3/client.js"></script>
 <script src="https://cdn.socket.io/4.5.0/socket.io.min.js" integrity="sha384-7EyYLQZgWBi67fBtVxw60/OWl1kjsfrPFcaU0pp0nAh+i8FD068QogUvg85Ewy1k" crossorigin="anonymous"></script>
 
 <script src="js/constants.js"></script>

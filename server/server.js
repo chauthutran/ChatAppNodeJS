@@ -12,10 +12,24 @@ const {
   userLeave,
   getRoomUsers
 } = require('./utils/users');
-const { application } = require('express');
+
+
+// Require the libraries:
+var SocketIOFileUpload = require("socketio-file-upload")
+const fs = require('fs')
+
 
 const botName = 'ChatApp Bot';
 const app = express();
+
+
+app.use(SocketIOFileUpload.router);
+
+
+
+
+
+
 const server = require('http').Server(app);
 
 const io = require("socket.io")(server, {
@@ -27,8 +41,44 @@ const io = require("socket.io")(server, {
 });
 
 
+app.use(express.static(__dirname + '/uploads'))
+app.get('/', (req, res) => {
+    res.sendFile(__dirname + "/index.html")
+})
+app.get('/deleteimage', (req, res) => {
+    console.log(req.query);
+    res.json(req.query.path);
+    fs.unlinkSync(__dirname + "/uploads/" + req.query.path, () => {
+        
+    })
+})
+
+
 
 io.on('connection', socket => {
+
+  // Make an instance of SocketIOFileUpload and listen on this socket:
+  var uploader = new SocketIOFileUpload();
+  uploader.dir = "uploads";
+  uploader.listen(socket);
+
+  // Do something when a file is saved:
+  uploader.on("saved", function (event) {
+      event.file.clientDetail.name = event.file.name; 
+      event.file.clientDetail.fullPath = `http://localhost:3000/uploads/${event.file.name}`; 
+      // socket.emit('message', formatMessage(username, `http://localhost:3000/uploads/${event.file.name}` ) );
+
+      // io.sockets.emit('message',{message:'new file <a target="_blank" href="">here</a>'});
+  });
+
+  // Error handler:
+  uploader.on("error", function (event) {
+    console.log("Error from uploader", event);
+  });
+
+
+
+
   console.log("------ Connected to server : " + socket.id);
   socket.on('joinRoom', ({ username, room }) => {
     const user = userJoin(socket.id, username, room);

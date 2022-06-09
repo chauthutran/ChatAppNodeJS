@@ -47,6 +47,55 @@ if( username != undefined )
 			}
 		});
 
+		// -----------------------------------------------------------------------
+		// Upload file'
+		
+		var siofu = new SocketIOFileUpload(socket);
+
+		siofu.listenOnInput(document.getElementById("upload_input"));
+
+		// Do something on upload progress:
+		siofu.addEventListener("progress", function (event) {
+		  var percent = (event.bytesLoaded / event.file.size) * 100;
+		  console.log("File is", percent.toFixed(2), "percent loaded");
+		});
+
+		// Do something when a file is uploaded:
+		siofu.addEventListener("complete", function (event) {
+		  console.log(event);
+		//   var img = document.createElement("img");
+		//   img.setAttribute("style", "float:left;width:500px;height:300px");
+		//   img.src = event.detail.name;
+		//   img.addEventListener("click", (e) => {
+		// 	$.ajax({
+		// 	  method: "GET",
+		// 	  url: "/deleteimage",
+		// 	  data: {
+		// 		path: event.detail.name,
+		// 	  },
+		// 	  success: function (data) {},
+		// 	});
+		//   });
+		//   var div = document.getElementById("images");
+
+		// 	var messageTag = $(`<li class="clearfix">
+		// 		<div class="message-data align-right">
+		// 		<span class="message-data-time" >${message.time}</span> &nbsp; &nbsp;
+		// 		<span class="message-data-name" >${message.username}</span> <i class="fa fa-circle me"></i>
+				
+		// 		</div>
+		// 		<div class="message other-message float-right">
+		// 			${message.text}
+		// 		</div>
+		// 	</li>`)
+		// 	$('.chat-history').find("ul").append( messageTag );
+		
+		//   div.appendChild(img);
+		
+		});
+
+	  // ---------------------------------------------------------------------------
+
 		socket.on('connect_error', function() {
 			console.log('Failed to connect to server');
 			isConnectServer = false;
@@ -96,7 +145,7 @@ if( username != undefined )
 				outputMessage(message);
 			}
 			
-
+			
 			// Scroll down
 			chatMessages.scrollTop = chatMessages.scrollHeight;
 		});
