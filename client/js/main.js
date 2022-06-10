@@ -39,7 +39,7 @@ if( username != undefined )
 		console.log("username: " + username );
 		console.log("room: " + room );
 
-		socket = io("http://localhost:3000", {
+		socket = io("http://localhost:3111", {
 			reconnectionDelayMax: 1000,
 			withCredentials: true,
 			extraHeaders: {
@@ -89,7 +89,7 @@ if( username != undefined )
 						<span class="message-data-name" >${username}</span> <i class="fa fa-circle me"></i>
 					</div>
 					<div class="message other-message float-right">
-						<img style="width: 300px;" src="http://localhost:3000/${event.detail.name}">
+						<img style="width: 300px;" src="http://localhost:3111/${event.detail.name}">
 					</div>
 				</li>`)
 				$('.chat-history').find("ul").append( messageTag );
@@ -102,7 +102,7 @@ if( username != undefined )
 						<span class="message-data-name" >${username}</span> <i class="fa fa-circle me"></i>
 					</div>
 					<div class="message other-message float-right">
-						<a href="http://localhost:3000/${event.detail.name}" target="_blank">${event.detail.name}</a>
+						<a href="http://localhost:3111/${event.detail.name}" target="_blank">${event.detail.name}</a>
 					</div>
 				</li>`)
 				$('.chat-history').find("ul").append( messageTag );
@@ -111,7 +111,7 @@ if( username != undefined )
 
 		});
 
-	  // ---------------------------------------------------------------------------
+	  	// ---------------------------------------------------------------------------
 
 		socket.on('connect_error', function() {
 			console.log('Failed to connect to server');
@@ -199,11 +199,11 @@ if( username != undefined )
 		if( isConnectServer )
 		{
 			// Emit message to server
-			socket.emit('chatMessage', formatMessage(username, msg) );
+			socket.emit('chatMessage', formatMessage(username, "", msg) );
 		}
 		else
 		{
-			const data = formatMessage( username, msg );
+			const data = formatMessage( username, "", msg );
 			queueMsgList.push( data );
 			outputMessage( data );
 		}
@@ -219,7 +219,7 @@ if( username != undefined )
 		var messageTag = $(`<li class="clearfix">
 			<div class="message-data align-right">
 			<span class="message-data-time" >${message.time}</span> &nbsp; &nbsp;
-			<span class="message-data-name" >${message.username}</span> <i class="fa fa-circle me"></i>
+			<span class="message-data-name" >${message.sender}</span> <i class="fa fa-circle me"></i>
 			
 			</div>
 			<div class="message other-message float-right">
@@ -244,7 +244,7 @@ if( username != undefined )
 			if( user.username != username )
 			{
 				const firstChar = user.username.charAt(0);
-				var userTag = $(`<li class="clearfix">
+				var userTag = $(`<li class="clearfix" style="cursor:pointer;" user=${JSON.stringify( user )}>
 						<div class="user-icon">${firstChar}</div>
 						<div class="about">
 						<div class="name">${user.username}</div>
@@ -254,12 +254,20 @@ if( username != undefined )
 						</div>
 					</li>`);
 
+				setupEvent_UserItemOnClick( userTag );
 				userList.prepend( userTag );
 			}
-			
 		});
-
 		
+	}
+
+	let selectedUser;
+	function setupEvent_UserItemOnClick( userTag ) {
+		userTag.click( function(e){
+			selectedUser = JSON.parse( userTag.attr("user") ); 
+			$(".chat-with").html( `Chat with ${selectedUser.username}`);
+			$(".chat-num-messages").html( $(".chat-history").find("ul li").length );
+		})
 	}
 
 	//Prompt the user before leave chat room
@@ -276,9 +284,6 @@ if( username != undefined )
 		$(".emoji-dashboard").slideUp('fast');
 	});
 	
-	// $(".chat-header .menu ul.list,.chat-inp .emoji").click(function(e){
-	// 	e.stopPropagation();
-	// });
 
 	// Show Emoji Dashboard
 	$("#showEmojiDashboard").click( function(e){

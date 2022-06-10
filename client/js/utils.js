@@ -15,12 +15,13 @@ const checkInternetStatusOnline = () => {
     // }
 }
 
-const formatMessage = (username, text) => {
+const formatMessage = (sender, receiver, text) => {
     return {
-      username,
-      text,
-      time: moment().format('h:mm a'),
-      id: (new Date()).getTime()
+        sender,
+        receiver,
+        text,
+        time: moment().format('h:mm a'),
+        id: (new Date()).getTime()
     };
 }
 

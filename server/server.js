@@ -1,145 +1,156 @@
-const path = require('path');
-const http = require('http');
 const express = require('express');
-const cors = require("cors");
-const Server = require('socket.io');
-const moment = require('moment');
-
-const formatMessage = require('./utils/messages');
-const {
-  userJoin,
-  getCurrentUser,
-  userLeave,
-  getRoomUsers
-} = require('./utils/users');
-
-
-// Require the libraries:
 var SocketIOFileUpload = require("socketio-file-upload")
 const fs = require('fs')
 
+const formatMessage = require('./utils/messages');
+const {
+	userJoin,
+	getCurrentUser,
+	userLeave,
+	getRoomUsers
+} = require('./utils/users');
+
 
 const botName = 'ChatApp Bot';
+
+
+// =======================================================================================================
+// Create APP
+// ====================
+
 const app = express();
-
-
 app.use(SocketIOFileUpload.router);
+app.use(express.static(__dirname + '/uploads'))
+app.get('/', (req, res) => {
+	console.log(req.query.path);
+	res.sendFile(__dirname + "/uploads/" + req.query.path);
+})
+app.get('/deleteimage', (req, res) => {
+	console.log(req.query);
+	res.json(req.query.path);
+	fs.unlinkSync(__dirname + "/uploads/" + req.query.path, () => {
+		
+	})
+})
+
+// ====================
+// END - Create APP
+// =======================================================================================================
 
 
-
-
-
+// =======================================================================================================
+// Create server
+// ====================
 
 const server = require('http').Server(app);
 
+
+// =======================================================================================================
+// INIT Socket IO
+// ====================
 const io = require("socket.io")(server, {
-  cors: {
-    origin: "http://localhost:8080",
-    methods: ["GET", "POST"],
-    credentials: true
-  }
+	cors: {
+		origin: "http://localhost:8080",
+		methods: ["GET", "POST"],
+		credentials: true
+	}
 });
 
-
-app.use(express.static(__dirname + '/uploads'))
-app.get('/', (req, res) => {
-    // res.sendFile(__dirname + "/index.html")
-    console.log(req.query.path);
-    res.sendFile(__dirname + "/uploads/" + req.query.path);
-})
-app.get('/deleteimage', (req, res) => {
-    console.log(req.query);
-    res.json(req.query.path);
-    fs.unlinkSync(__dirname + "/uploads/" + req.query.path, () => {
-        
-    })
-})
+// ====================
+// END - INIT Socket IO
+// =======================================================================================================
 
 
-
+// =======================================================================================================
+// Create connection
+// ====================
 io.on('connection', socket => {
 
-  // Make an instance of SocketIOFileUpload and listen on this socket:
-  var uploader = new SocketIOFileUpload();
-  uploader.dir = "uploads";
-  uploader.listen(socket);
+	console.log("------ Connected to server : " + socket.id);
 
-  // Do something when a file is saved:
-  uploader.on("saved", function (event) {
-      event.file.clientDetail.name = event.file.name; 
-      // event.file.clientDetail.fullPath = `http://localhost:3000/${event.file.name}`; 
-      // socket.emit('message', formatMessage(username, `http://localhost:3000/${event.file.name}` ) );
+	// ------------------------------------------------------------------------------
+	// Upload files
+	// ---------------------
 
-  });
+	// Make an instance of SocketIOFileUpload and listen on this socket:
+	var uploader = new SocketIOFileUpload();
+	uploader.dir = "uploads";
+	uploader.listen(socket);
 
-  // Error handler:
-  uploader.on("error", function (event) {
-    console.log("Error from uploader", event);
-  });
+	// Do something when a file is saved:
+	uploader.on("saved", function (event) {
+		event.file.clientDetail.name = event.file.name; 
+	});
 
+	// Error handler:
+	uploader.on("error", function (event) {
+		console.log("Error from uploader", event);
+	});
 
+	// ------------------------------------------------------------------------------
+	// END - Upload files
+	// ---------------------
+	
 
+	// ------------------------------------------------------------------------------
+	// END - Upload files
+	// ---------------------	
 
-  console.log("------ Connected to server : " + socket.id);
-  socket.on('joinRoom', ({ username, room }) => {
-    const user = userJoin(socket.id, username, room);
+	socket.on('joinRoom', ({ username, room }) => {
+	const user = userJoin(socket.id, username, room);
 
-    socket.join(user.room);
+	socket.join(user.room);
 
-    // Welcome current user
-    socket.emit('message', formatMessage(botName, 'Welcome to ChatApp!'));
+	// Welcome current user
+	socket.emit('message', formatMessage(botName, user.username, 'Welcome to ChatApp!'));
 
-    // Broadcast when a user connects
-    socket.broadcast
-      .to(user.room)
-      .emit(
-        'message',
-        formatMessage(botName, `${user.username} has joined the chat`)
-      );
+	// Broadcast when a user connects
+	socket.broadcast
+	.to(user.room)
+	.emit(
+		'message',
+		formatMessage(botName, user.username, `${user.username} has joined the chat`)
+	);
 
-    // Send users and room info
-    io.to(user.room).emit('roomUsers', {
-      room: user.room,
-      users: getRoomUsers(user.room)
-    });
-  });
-
-  // Listen for chatMessage
-  socket.on('chatMessage', data => {
-    const user = getCurrentUser(socket.id);
-    console.log("---- User : ")
-    console.log(user);
-    console.log(data);
-
-
-    if( user != undefined )
-    {
-      // const message = "server reveived your message : " + msg + " " + moment().format('h:mm a');
-      // io.to(user.room).emit('message', formatMessage(user.username, msg));
-      io.to(user.room).emit('message', data );
-    }
-   
-
-    
-  });
-
-  // Runs when client disconnects
-  socket.on('disconnect', () => {
-    const user = userLeave(socket.id);
-
-    if (user) {
-      io.to(user.room).emit(
-        'message',
-        formatMessage(botName, `${user.username} has left the chat`)
-      );
-
-      // Send users and room info
-      io.to(user.room).emit('roomUsers', {
-        room: user.room,
-        users: getRoomUsers(user.room)
-      });
-    }
-  });
+	// Send users and room info
+	io.to(user.room).emit('roomUsers', {
+	room: user.room,
+	users: getRoomUsers(user.room)
+	});
 });
 
-server.listen(3000, () => console.log(`Server running on port 3000`));
+// Listen for chatMessage
+socket.on('chatMessage', data => {
+	const user = getCurrentUser(socket.id);
+	if( user != undefined )
+	{
+	// const message = "server reveived your message : " + msg + " " + moment().format('h:mm a');
+	// io.to(user.room).emit('message', formatMessage(user.username, msg));
+	io.to(user.room).emit('message', data );
+	// io.to(data.receiver).to(data.sender).emit('message', data );
+	}
+
+
+	
+});
+
+// Runs when client disconnects
+socket.on('disconnect', () => {
+	const user = userLeave(socket.id);
+
+	if (user) {
+	io.to(user.room).emit(
+		'message',
+		formatMessage(botName, user.username, `${user.username} has left the chat`)
+	);
+
+	// Send users and room info
+	io.to(user.room).emit('roomUsers', {
+		room: user.room,
+		users: getRoomUsers(user.room)
+	});
+	}
+});
+});
+
+server.listen(3111, () => console.log(`Server running on port 3111`));
