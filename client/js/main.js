@@ -115,126 +115,41 @@ if( username != undefined )
 		  	const data = formatMessage( curUser, selectedUser, `http://localhost:3111/${event.detail.name}`, type );
 			if( isConnectServer )
 			{
-				console.log( "complete file ... ");
-				console.log( data );
-				// Emit message to server
 				socket.emit('getMsg', data );
 				outputMessage( data );
-
-				// Emit message to server
-				// socket.on('sendMsg', (data) => {
-			
-				// 	console.log("---- complete file");
-				// 	console.log(data);
-				// 	outputMessage(data);
-				// });
 			}
-
-			
-		//   var img = document.createElement("img");
-		//   img.setAttribute("style", "float:left;width:500px;height:300px");
-		//   img.src = event.detail.name;
-		//   img.addEventListener("click", (e) => {
-		// 	$.ajax({
-		// 	  method: "GET",
-		// 	  url: "/deleteimage",
-		// 	  data: {
-		// 		path: event.detail.name,
-		// 	  },
-		// 	  success: function (data) {},
-		// 	});
-		//   });
-		//   var div = document.getElementById("images");
-
-		
-{/*  */}
-				
-			// if( event.file.type.indexOf("image/") == 0  )
-			// {
-			// 	var messageTag = $(`<li class="clearfix">
-			// 		<div class="message-data align-right">
-			// 			<span class="message-data-time" >${moment().format('h:mm a')}</span> &nbsp; &nbsp;
-			// 			<span class="message-data-name" >${username}</span> <i class="fa fa-circle me"></i>
-			// 		</div>
-			// 		<div class="message other-message float-right">
-			// 			<img style="width: 300px;" src="http://localhost:3111/${event.detail.name}">
-			// 		</div>
-			// 	</li>`)
-			// 	$('.chat-history').find("ul").append( messageTag );
-			// }
-			// else
-			// {
-			// 	var messageTag = $(`<li class="clearfix">
-			// 		<div class="message-data align-right">
-			// 			<span class="message-data-time" >${moment().format('h:mm a')}</span> &nbsp; &nbsp;
-			// 			<span class="message-data-name" >${username}</span> <i class="fa fa-circle me"></i>
-			// 		</div>
-			// 		<div class="message other-message float-right">
-			// 			<a href="http://localhost:3111/${event.detail.name}" target="_blank">${event.detail.name}</a>
-			// 		</div>
-			// 	</li>`)
-			// 	$('.chat-history').find("ul").append( messageTag );
-			// }
-		
-
 		});
 
 	  	// ---------------------------------------------------------------------------
 
-		// socket.on('connect_error', function() {
-		// 	console.log('Failed to connect to server');
-		// 	isConnectServer = false;
-		// });
+		socket.on('connect_error', function() {
+			// console.log('Failed to connect to server');
+			$("#chatView").hide();
+			$("#initChatMsg").html('Failed to connect to server').show();
 
-		// socket.on('connect', function () {
-		// 	console.log('Socket is connected.');
-		// 	isConnectServer = true;
+			isConnectServer = false;
+		});
 
-		// 	// Send the queue message if there is any message unsent
-		// 	for( i=queueMsgList.length - 1; i>=0; i-- )
-		// 	{
-		// 		// Emit message to server
-		// 		socket.emit('chatMessage', queueMsgList[i]);
-		// 	}
+		socket.on('connect', function () {
+			console.log('Socket is connected.');
 
-		// });
+			$("#chatView").hide();
+			$("#initChatMsg").html('Wellcome to Chat App').show();
 
-		// socket.on('disconnect', function () {
-		// 	console.log('Socket is disconnected.');
-		// });
+			isConnectServer = true;
 
+			// Send the queue message if there is any message unsent
+			for( i=queueMsgList.length - 1; i>=0; i-- )
+			{
+				// Emit message to server
+				socket.emit('chatMessage', queueMsgList[i]);
+			}
 
-		// // Join chatroom
-		// socket.emit('joinRoom', { username, room });
+		});
 
-		// // Get room and users
-		// socket.on('roomUsers', ({ room, users }) => {
-		// 	console.log("joined in room ");
-		// 	// outputRoomName(room);
-		// 	outputUsers(users);
-		// });
-
-
-		// // Message from server
-		// socket.on('message', (message) => {
-		// 	console.log(message);
-
-		// 	let messageTag = $('.chat-messages').find("div#" + message.id);
-		// 	if( messageTag.length > 0 )
-		// 	{
-		// 		messageTag.removeClass("offline");
-		// 		removeFromArray( queueMsgList, "id", message.id );
-		// 	}
-		// 	else
-		// 	{
-		// 		outputMessage(message);
-		// 	}
-			
-			
-		// 	// Scroll down
-		// 	chatMessages.scrollTop = chatMessages.scrollHeight;
-		// });
-
+		socket.on('disconnect', function () {
+			console.log('Socket is disconnected.');
+		});
 	}
 	catch( ex )
 	{
@@ -315,11 +230,7 @@ if( username != undefined )
 				</li>`)
 
 		$('.chat-history').find("ul").append( messageTag );
-	}
-
-	// Add room name to DOM
-	function outputRoomName(room) {
-		// roomName.innerText = room;
+		$(".chat-num-messages").html( $(".chat-history").find("ul li").length );
 	}
 
 	// Add users to DOM
@@ -355,6 +266,9 @@ if( username != undefined )
 			selectedUser = JSON.parse( userTag.attr("user") ); 
 			$(".chat-with").html( `Chat with ${selectedUser.username}`);
 			$(".chat-num-messages").html( $(".chat-history").find("ul li").length );
+
+			$("#chatView").show();
+			$("#initChatMsg").hide();
 		})
 	}
 
