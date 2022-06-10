@@ -12,7 +12,7 @@ const {
 
 
 const botName = 'ChatApp Bot';
-
+const users = [];
 
 // =======================================================================================================
 // Create APP
@@ -68,6 +68,35 @@ io.on('connection', socket => {
 
 	console.log("------ Connected to server : " + socket.id);
 
+	socket.on('username', (username) => {
+		users.push({
+			id : socket.id,
+			username : username
+		});
+
+		let len = users.length;
+		len--;
+
+		io.emit('userList',users,users[len].id); 
+
+	});
+
+	
+	socket.on('getMsg', (data) => {
+		socket.broadcast.to(data.receiver).emit('sendMsg', formatMessage(data.sender, data.id, data.text ) );
+	});
+
+	socket.on('disconnect',()=>{
+		    	
+		for(let i=0; i < users.length; i++){
+		        	
+			if(users[i].id === socket.id){
+				  users.splice(i,1); 
+			}
+		  }
+		  io.emit('exit',users); 
+  	});
+
 	// ------------------------------------------------------------------------------
 	// Upload files
 	// ---------------------
@@ -96,61 +125,61 @@ io.on('connection', socket => {
 	// END - Upload files
 	// ---------------------	
 
-	socket.on('joinRoom', ({ username, room }) => {
-	const user = userJoin(socket.id, username, room);
+	// socket.on('joinRoom', ({ username, room }) => {
+	// const user = userJoin(socket.id, username, room);
 
-	socket.join(user.room);
+	// socket.join(user.room);
 
-	// Welcome current user
-	socket.emit('message', formatMessage(botName, user.username, 'Welcome to ChatApp!'));
+	// // Welcome current user
+	// socket.emit('message', formatMessage(botName, user.username, 'Welcome to ChatApp!'));
 
-	// Broadcast when a user connects
-	socket.broadcast
-	.to(user.room)
-	.emit(
-		'message',
-		formatMessage(botName, user.username, `${user.username} has joined the chat`)
-	);
+	// // Broadcast when a user connects
+	// socket.broadcast
+	// .to(user.room)
+	// .emit(
+	// 	'message',
+	// 	formatMessage(botName, user.username, `${user.username} has joined the chat`)
+	// );
 
-	// Send users and room info
-	io.to(user.room).emit('roomUsers', {
-	room: user.room,
-	users: getRoomUsers(user.room)
-	});
+	// // Send users and room info
+	// io.to(user.room).emit('roomUsers', {
+	// room: user.room,
+	// users: getRoomUsers(user.room)
+	// });
 });
 
-// Listen for chatMessage
-socket.on('chatMessage', data => {
-	const user = getCurrentUser(socket.id);
-	if( user != undefined )
-	{
-	// const message = "server reveived your message : " + msg + " " + moment().format('h:mm a');
-	// io.to(user.room).emit('message', formatMessage(user.username, msg));
-	io.to(user.room).emit('message', data );
-	// io.to(data.receiver).to(data.sender).emit('message', data );
-	}
+// // Listen for chatMessage
+// socket.on('chatMessage', data => {
+// 	const user = getCurrentUser(socket.id);
+// 	if( user != undefined )
+// 	{
+// 	// const message = "server reveived your message : " + msg + " " + moment().format('h:mm a');
+// 	// io.to(user.room).emit('message', formatMessage(user.username, msg));
+// 	io.to(user.room).emit('message', data );
+// 	// io.to(data.receiver).to(data.sender).emit('message', data );
+// 	}
 
 
 	
-});
+// });
 
-// Runs when client disconnects
-socket.on('disconnect', () => {
-	const user = userLeave(socket.id);
+// // Runs when client disconnects
+// socket.on('disconnect', () => {
+// 	const user = userLeave(socket.id);
 
-	if (user) {
-	io.to(user.room).emit(
-		'message',
-		formatMessage(botName, user.username, `${user.username} has left the chat`)
-	);
+// 	if (user) {
+// 	io.to(user.room).emit(
+// 		'message',
+// 		formatMessage(botName, user.username, `${user.username} has left the chat`)
+// 	);
 
-	// Send users and room info
-	io.to(user.room).emit('roomUsers', {
-		room: user.room,
-		users: getRoomUsers(user.room)
-	});
-	}
-});
-});
+// 	// Send users and room info
+// 	io.to(user.room).emit('roomUsers', {
+// 		room: user.room,
+// 		users: getRoomUsers(user.room)
+// 	});
+// 	}
+// });
+// });
 
 server.listen(3111, () => console.log(`Server running on port 3111`));

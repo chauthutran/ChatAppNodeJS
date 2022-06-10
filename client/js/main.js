@@ -1,11 +1,17 @@
 const chatForm = document.getElementById('chat-form');
 const chatMessages = document.querySelector('.chat-history');
 const roomName = document.getElementById('room-name');
-let userList =  $('#users');
+let userListTag =  $('#users');
 
 let socket;
 let isConnectServer = true;
 let queueMsgList = [];
+let socketId = null;
+let selectedUser = null;
+let messages = [];
+let msgData = null;
+let users = [];
+
 
 // Get username and room from URL
 const { username, room } = Qs.parse(location.search, {
@@ -45,6 +51,48 @@ if( username != undefined )
 			extraHeaders: {
 				"Access-Control-Allow-Origin": "origin-list"
 			}
+		});
+
+		socket.emit('username', username);
+
+		socket.on('userList', (_users,_socketId) => {
+			if( socketId === null){
+				socketId = _socketId;
+			}
+			users = _users;
+console.log(users);
+			outputUsers( users );
+		}); 	
+
+
+		socket.on('exit', (_userList) => {
+			// console.log('-------------- exit');
+			// console.log(userList);
+
+			userList = _userList;
+		});
+
+		// socket.on('sendMsg', (data) => {
+		// 	$scope.messages.push(data);
+		// });
+
+		socket.on('sendMsg', (data) => {
+			// messages.push(data);
+
+			console.log("---- sendMsg");
+			console.log(data);
+
+				let messageTag = $('.chat-messages').find("div#" + data.id);
+				if( messageTag.length > 0 )
+				{
+					messageTag.removeClass("offline");
+					removeFromArray( queueMsgList, "id", data.id );
+				}
+				else
+				{
+					outputMessage(data);
+				}
+
 		});
 
 		// -----------------------------------------------------------------------
@@ -113,59 +161,59 @@ if( username != undefined )
 
 	  	// ---------------------------------------------------------------------------
 
-		socket.on('connect_error', function() {
-			console.log('Failed to connect to server');
-			isConnectServer = false;
-		});
+		// socket.on('connect_error', function() {
+		// 	console.log('Failed to connect to server');
+		// 	isConnectServer = false;
+		// });
 
-		socket.on('connect', function () {
-			console.log('Socket is connected.');
-			isConnectServer = true;
+		// socket.on('connect', function () {
+		// 	console.log('Socket is connected.');
+		// 	isConnectServer = true;
 
-			// Send the queue message if there is any message unsent
-			for( i=queueMsgList.length - 1; i>=0; i-- )
-			{
-				// Emit message to server
-				socket.emit('chatMessage', queueMsgList[i]);
-			}
+		// 	// Send the queue message if there is any message unsent
+		// 	for( i=queueMsgList.length - 1; i>=0; i-- )
+		// 	{
+		// 		// Emit message to server
+		// 		socket.emit('chatMessage', queueMsgList[i]);
+		// 	}
 
-		});
+		// });
 
-		socket.on('disconnect', function () {
-			console.log('Socket is disconnected.');
-		});
-
-
-		// Join chatroom
-		socket.emit('joinRoom', { username, room });
-
-		// Get room and users
-		socket.on('roomUsers', ({ room, users }) => {
-			console.log("joined in room ");
-			// outputRoomName(room);
-			outputUsers(users);
-		});
+		// socket.on('disconnect', function () {
+		// 	console.log('Socket is disconnected.');
+		// });
 
 
-		// Message from server
-		socket.on('message', (message) => {
-			console.log(message);
+		// // Join chatroom
+		// socket.emit('joinRoom', { username, room });
 
-			let messageTag = $('.chat-messages').find("div#" + message.id);
-			if( messageTag.length > 0 )
-			{
-				messageTag.removeClass("offline");
-				removeFromArray( queueMsgList, "id", message.id );
-			}
-			else
-			{
-				outputMessage(message);
-			}
+		// // Get room and users
+		// socket.on('roomUsers', ({ room, users }) => {
+		// 	console.log("joined in room ");
+		// 	// outputRoomName(room);
+		// 	outputUsers(users);
+		// });
+
+
+		// // Message from server
+		// socket.on('message', (message) => {
+		// 	console.log(message);
+
+		// 	let messageTag = $('.chat-messages').find("div#" + message.id);
+		// 	if( messageTag.length > 0 )
+		// 	{
+		// 		messageTag.removeClass("offline");
+		// 		removeFromArray( queueMsgList, "id", message.id );
+		// 	}
+		// 	else
+		// 	{
+		// 		outputMessage(message);
+		// 	}
 			
 			
-			// Scroll down
-			chatMessages.scrollTop = chatMessages.scrollHeight;
-		});
+		// 	// Scroll down
+		// 	chatMessages.scrollTop = chatMessages.scrollHeight;
+		// });
 
 	}
 	catch( ex )
@@ -199,11 +247,12 @@ if( username != undefined )
 		if( isConnectServer )
 		{
 			// Emit message to server
-			socket.emit('chatMessage', formatMessage(username, "", msg) );
+			
+			socket.emit('getMsg', formatMessage(username, selectedUser.id, msg) );
 		}
 		else
 		{
-			const data = formatMessage( username, "", msg );
+			const data = formatMessage( username, selectedUser.id, msg );
 			queueMsgList.push( data );
 			outputMessage( data );
 		}
@@ -255,7 +304,7 @@ if( username != undefined )
 					</li>`);
 
 				setupEvent_UserItemOnClick( userTag );
-				userList.prepend( userTag );
+				userListTag.append( userTag );
 			}
 		});
 		
