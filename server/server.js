@@ -2,7 +2,7 @@ const express = require('express');
 var SocketIOFileUpload = require("socketio-file-upload")
 const fs = require('fs')
 
-const formatMessage = require('./utils/messages');
+// const formatMessage = require('./utils/messages');
 const {
 	userJoin,
 	getCurrentUser,
@@ -83,7 +83,10 @@ io.on('connection', socket => {
 
 	
 	socket.on('getMsg', (data) => {
-		socket.broadcast.to(data.receiver).emit('sendMsg', formatMessage(data.sender, data.id, data.text ) );
+		console.log("----------getMsg");
+		console.log(data);
+		socket.broadcast.to(data.sender.id).to(data.receiver.id).emit('sendMsg', data );
+		// socket.to(data.sender.id).to(data.receiver.id).emit('sendMsg', data );
 	});
 
 	socket.on('disconnect',()=>{

@@ -14,6 +14,7 @@ let users = [];
 
 
 // Get username and room from URL
+let curUser = {};
 const { username, room } = Qs.parse(location.search, {
 	ignoreQueryPrefix: true,
 });
@@ -60,39 +61,37 @@ if( username != undefined )
 				socketId = _socketId;
 			}
 			users = _users;
-console.log(users);
+			// get current user infor
+			users.forEach((user) => {
+				if( user.username == username )
+				{
+					curUser = user;
+				}
+			});
 			outputUsers( users );
 		}); 	
 
 
 		socket.on('exit', (_userList) => {
-			// console.log('-------------- exit');
-			// console.log(userList);
-
 			userList = _userList;
 		});
 
-		// socket.on('sendMsg', (data) => {
-		// 	$scope.messages.push(data);
-		// });
 
 		socket.on('sendMsg', (data) => {
-			// messages.push(data);
-
+			
 			console.log("---- sendMsg");
 			console.log(data);
 
-				let messageTag = $('.chat-messages').find("div#" + data.id);
-				if( messageTag.length > 0 )
-				{
-					messageTag.removeClass("offline");
-					removeFromArray( queueMsgList, "id", data.id );
-				}
-				else
-				{
-					outputMessage(data);
-				}
-
+			let messageTag = $('.chat-messages').find("div#" + data.id);
+			if( messageTag.length > 0 )
+			{
+				messageTag.removeClass("offline");
+				removeFromArray( queueMsgList, "id", data.id );
+			}
+			else
+			{
+				outputMessage(data);
+			}
 		});
 
 		// -----------------------------------------------------------------------
@@ -110,7 +109,28 @@ console.log(users);
 
 		// Do something when a file is uploaded:
 		siofu.addEventListener("complete", function (event) {
-		  console.log(event);
+		  	console.log(event);
+
+			const type = ( event.file.type.indexOf("image/") == 0 ) ? "IMAGE" : "FILE";
+		  	const data = formatMessage( curUser, selectedUser, `http://localhost:3111/${event.detail.name}`, type );
+			if( isConnectServer )
+			{
+				console.log( "complete file ... ");
+				console.log( data );
+				// Emit message to server
+				socket.emit('getMsg', data );
+				outputMessage( data );
+
+				// Emit message to server
+				// socket.on('sendMsg', (data) => {
+			
+				// 	console.log("---- complete file");
+				// 	console.log(data);
+				// 	outputMessage(data);
+				// });
+			}
+
+			
 		//   var img = document.createElement("img");
 		//   img.setAttribute("style", "float:left;width:500px;height:300px");
 		//   img.src = event.detail.name;
@@ -129,32 +149,32 @@ console.log(users);
 		
 {/*  */}
 				
-			if( event.file.type.indexOf("image/") == 0  )
-			{
-				var messageTag = $(`<li class="clearfix">
-					<div class="message-data align-right">
-						<span class="message-data-time" >${moment().format('h:mm a')}</span> &nbsp; &nbsp;
-						<span class="message-data-name" >${username}</span> <i class="fa fa-circle me"></i>
-					</div>
-					<div class="message other-message float-right">
-						<img style="width: 300px;" src="http://localhost:3111/${event.detail.name}">
-					</div>
-				</li>`)
-				$('.chat-history').find("ul").append( messageTag );
-			}
-			else
-			{
-				var messageTag = $(`<li class="clearfix">
-					<div class="message-data align-right">
-						<span class="message-data-time" >${moment().format('h:mm a')}</span> &nbsp; &nbsp;
-						<span class="message-data-name" >${username}</span> <i class="fa fa-circle me"></i>
-					</div>
-					<div class="message other-message float-right">
-						<a href="http://localhost:3111/${event.detail.name}" target="_blank">${event.detail.name}</a>
-					</div>
-				</li>`)
-				$('.chat-history').find("ul").append( messageTag );
-			}
+			// if( event.file.type.indexOf("image/") == 0  )
+			// {
+			// 	var messageTag = $(`<li class="clearfix">
+			// 		<div class="message-data align-right">
+			// 			<span class="message-data-time" >${moment().format('h:mm a')}</span> &nbsp; &nbsp;
+			// 			<span class="message-data-name" >${username}</span> <i class="fa fa-circle me"></i>
+			// 		</div>
+			// 		<div class="message other-message float-right">
+			// 			<img style="width: 300px;" src="http://localhost:3111/${event.detail.name}">
+			// 		</div>
+			// 	</li>`)
+			// 	$('.chat-history').find("ul").append( messageTag );
+			// }
+			// else
+			// {
+			// 	var messageTag = $(`<li class="clearfix">
+			// 		<div class="message-data align-right">
+			// 			<span class="message-data-time" >${moment().format('h:mm a')}</span> &nbsp; &nbsp;
+			// 			<span class="message-data-name" >${username}</span> <i class="fa fa-circle me"></i>
+			// 		</div>
+			// 		<div class="message other-message float-right">
+			// 			<a href="http://localhost:3111/${event.detail.name}" target="_blank">${event.detail.name}</a>
+			// 		</div>
+			// 	</li>`)
+			// 	$('.chat-history').find("ul").append( messageTag );
+			// }
 		
 
 		});
@@ -244,18 +264,19 @@ console.log(users);
 			return false;
 		}
 
+		const data = formatMessage( curUser, selectedUser, msg );
 		if( isConnectServer )
 		{
 			// Emit message to server
-			
-			socket.emit('getMsg', formatMessage(username, selectedUser.id, msg) );
+			socket.emit('getMsg', data );
 		}
 		else
 		{
-			const data = formatMessage( username, selectedUser.id, msg );
+			const data = formatMessage( curUser, selectedUser, msg );
 			queueMsgList.push( data );
-			outputMessage( data );
 		}
+
+		outputMessage( data );
 
 		// Clear input
 		$("#msg").val("");
@@ -265,16 +286,34 @@ console.log(users);
 	// Output message to DOM
 	function outputMessage(message) {
 
-		var messageTag = $(`<li class="clearfix">
-			<div class="message-data align-right">
-			<span class="message-data-time" >${message.time}</span> &nbsp; &nbsp;
-			<span class="message-data-name" >${message.sender}</span> <i class="fa fa-circle me"></i>
-			
-			</div>
-			<div class="message other-message float-right">
-				${message.text}
-			</div>
-		</li>`)
+		var messageTag = "";
+		var messageDivTag;
+		if( message.type != undefined )
+		{
+			if( message.type == "IMAGE" )
+			{
+				messageDivTag = `<img style="width: 300px;" src="${message.text}">`;
+			}
+			else
+			{
+				messageDivTag = `<a href="${message.text}" target="_blank">${message.text}</a>`;
+			}
+		} 
+		else {
+			messageDivTag = `<span>${message.text}</span>`;
+		}
+
+		messageTag = $(`<li class="clearfix">
+					<div class="message-data align-right">
+					<span class="message-data-time" >${message.time}</span> &nbsp; &nbsp;
+					<span class="message-data-name" >${message.sender.username}</span> <i class="fa fa-circle me"></i>
+					
+					</div>
+					<div class="message other-message float-right">
+						${messageDivTag}
+					</div>
+				</li>`)
+
 		$('.chat-history').find("ul").append( messageTag );
 	}
 
@@ -285,11 +324,11 @@ console.log(users);
 
 	// Add users to DOM
 	function outputUsers(users) {
-		// userList.html("");
+		userListTag.html("");
 		
 		// Add the proper list here
 		users.forEach((user) => {
-
+			
 			if( user.username != username )
 			{
 				const firstChar = user.username.charAt(0);
