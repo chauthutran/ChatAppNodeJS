@@ -1,215 +1,122 @@
-
-function ChatApp( _username, _socket )
+function ChatApp()
 {
     var me = this;
 
+    me.socketIOObj;
+    me.socket;
+    me.username;
     me.curUser = {};
-    me.username = _username;
-    me.socket = _socket;
-    me.selectedUser;
 
+    me.chatFormObj;
 
     // ------------------------------------------------------------------------
-    // HTML Tags
-
-    me.curUsernameTag = $("#curUsername");
-    me.curUserIconTag = $("#curUserIcon");
-    me.sendBtnTag = $("#sendBtn");
-    me.msgTag = $("#msg");
-
-    
-    me.logoutBtnTag = $('.leave-btn');
-    me.emojjiDashboardTag = $(".emoji-dashboard");
-    me.showEmojiDashboardTag = $("#showEmojiDashboard");
-    
-    me.chatHistoryTag = $('.chat-history');
-    me.chatHistoryMsgNoTag = $(".chat-num-messages")
-
-
-    // ------------------------------------------------------------------------
-    // Run INIT
+	// INIT method
 
     me.init = function() {
+        username = Utils.getParamValueFromURL("username");
 
-        // Add Emoji in Emoji Dashboard
-        for( var i=0; i<emojiCodes.length; i++ )
+        if( username != undefined )
         {
-            var liTag = $("<li></li>");
-            liTag.val("&#" + emojiCodes[i]+ ";")
-            liTag.append("&#" + emojiCodes[i]+ ";");
+            me.initSocketIO();
 
-            $("#emojiDashboard").find("ul").append(liTag);
+            new UploadFile( me.socket, me.chatFormObj );
         }
-
-        me.setUp_Events();
     }
 
-    me.setCurrentUserInfo = function()
-    {
-	    me.curUsernameTag.html( username );
-
-        // For curUser icon background-color
-        var randomColor = Math.floor(Math.random()*16777215).toString(16);
-        me.curUserIconTag.html( username.charAt(0).toUpperCase() );
-        me.curUserIconTag.css("backgroundColor", "#" + randomColor);
-        me.curUserIconTag.css("color", "#" + invertColor( randomColor ));
-    }
-
-
-    // ------------------------------------------------------------------------
-    // HTML Tags's events
-
-    me.setUp_Events = function()
-    {
-        me.sendBtnTag.click( function(e){
-            me.submitChatMessage( e )
-        });
-    
-        me.msgTag.keypress( function(e){
-            if( e.key === "Enter") {
-                me.submitChatMessage( e )
-            }
-        });
-
-
-        // Log-out button
-        me.logoutBtnTag.click(function() {
-            const leaveRoom = confirm('Are you sure you want to log-out ?');
-            if (leaveRoom) {
-                window.location = 'index.html';
-            } 
-            else {
-            }
-        });
-
-        $(document).click(function(e){
-            me.emojjiDashboardTag.slideUp('fast');
-        });
+    me.initSocketIO = function() {
         
+        me.socketIOObj = new SocketIO();
+        me.socket = me.socketIOObj.socket;
+        me.chatFormObj = me.socketIOObj.chatFormObj;
+        
+        // me.socket = io("http://localhost:3111", {
+        //     reconnectionDelayMax: 1000,
+        //     withCredentials: true,
+        //     extraHeaders: {
+        //         "Access-Control-Allow-Origin": "origin-list"
+        //     }
+        // });
 
-        // Show Emoji Dashboard
-        me.showEmojiDashboardTag.click( function(e){
-            me.emojjiDashboardTag.slideToggle('fast');
-            e.stopPropagation();
-        });
+        // me.chatFormObj = new ChatForm( me.username, me.socket );
 
-        me.emojjiDashboardTag.find("ul").find("li").click( function() {
-            Utils.insertText( me.msgTag, $(this).html() );
-            me.emojjiDashboardTagslideUp('fast');
-        });
+		// me.socket.emit('username', username);
+
+		// me.socket.on('userList', (_users,_socketId) => {
+		// 	// if( socketId === null ){
+		// 	// 	socketId = _socketId;
+		// 	// }
+		// 	var users = _users;
+
+		// 	// get current user infor
+		// 	users.forEach((user) => {
+		// 		if( user.username == username )
+		// 		{
+		// 			curUser = user;
+		// 		}
+		// 	});
+		// 	me.chatFormObj.outputUsers( users );
+		// }); 	
+
+
+		// // me.socket.on('exit', (_userList) => {
+		// // 	userList = _userList;
+		// // });
+
+
+		// me.socket.on('sendMsg', (data) => {
+			
+		// 	let messageTag = $('.chat-history').find("li#" + data.id);
+		// 	if( messageTag.length > 0 )
+		// 	{
+		// 		messageTag.removeClass("offline");
+		// 		removeOfflineMessage( data );
+		// 	}
+		// 	else
+		// 	{
+		// 		me.chatFormObj.outputMessage(data);
+		// 	}
+		// });
+
+		
+	  	// // ---------------------------------------------------------------------------
+
+        // me.socket.on('connect_error', function() {
+		// 	console.log('Failed to connect to server');
+		// 	// $("#chatView").hide();
+		// 	// $("#initChatMsg").html('Failed to connect to server').show();
+		// });
+
+		// me.socket.on('connect', function () {
+		// 	console.log('Socket is connected.');
+
+		// 	$("#chatView").hide();
+		// 	$("#initChatMsg").html(`Wellcome, ${username}`).show();
+
+		// 	// Send the queue message if there is any message unsent
+		// 	var offlineMessages = getOfflineMessages();
+		// 	for( i=offlineMessages.length - 1; i>=0; i-- )
+		// 	{
+		// 		// Emit message to server
+		// 		me.socket.emit('getMsg', offlineMessages[i]);
+		// 	}
+
+		// });
+
+		
+		// me.socket.on('reconnect', function() {
+		// 	console.log('reconnect fired!');
+		// });
+		
+		// me.socket.on('disconnect', function () {
+		// 	console.log('Socket is disconnected.');
+		// });
+
+
     }
 
 
     // ------------------------------------------------------------------------
-    // Supportive methods
+	// RUN init method
 
-    // Output user list
-    me.outputUsers = function( users ) {
-		userListTag.html("");
-		
-		// Add the proper list here
-		users.forEach((user) => {
-			
-			if( user.username != username )
-			{
-				const firstChar = user.username.charAt(0);
-				var userTag = $(`<li class="clearfix" style="cursor:pointer;" user=${JSON.stringify( user )}>
-						<div class="user-icon">${firstChar}</div>
-						<div class="about">
-						<div class="name">${user.username}</div>
-						<div class="status">
-							<i class="fa fa-circle online"></i> online
-						</div>
-						</div>
-					</li>`);
-
-				me.setupEvent_UserItemOnClick( userTag );
-				userListTag.append( userTag );
-			}
-		});
-		
-	}
-
-    me.setupEvent_UserItemOnClick = function( userTag ) {
-		userTag.click( function(e){
-			selectedUser = JSON.parse( userTag.attr("user") ); 
-			$(".chat-with").html( `Chat with ${selectedUser.username}`);
-			$(".chat-num-messages").html( $(".chat-history").find("ul li").length );
-
-			$("#chatView").show();
-			$("#initChatMsg").hide();
-		})
-	}
-
-    // Message submit
-	me.submitChatMessage = function(e) {
-		e.preventDefault();
-
-		// Get message text
-		let msg = me.msgTag.val();
-		msg = msg.trim();
-		if (!msg) {
-			return false;
-		}
-
-		const data = Utils.formatMessage( curUser, selectedUser, msg );
-		if( socket.connected )
-		{
-			// Emit message to server
-			socket.emit('getMsg', data );
-		}
-		else
-		{
-			// const data = Utils.formatMessage( curUser, selectedUser, msg );
-			saveOfflineMessage( data );
-		}
-
-		me.outputMessage( data );
-
-		// Clear input
-		me.msgTag.val("");
-		// me.msgTag.focus();
-	}
-
-    // Output messages sent
-    me.outputMessage = function(message) {
-
-		var messageTag = "";
-		var messageDivTag;
-		if( message.type != undefined )
-		{
-			if( message.type == "IMAGE" )
-			{
-				messageDivTag = `<img style="width: 300px;" src="${message.text}">`;
-			}
-			else
-			{
-				messageDivTag = `<a href="${message.text}" target="_blank">${message.text}</a>`;
-			}
-		} 
-		else {
-			messageDivTag = `<span>${message.text}</span>`;
-		}
-
-
-		const offlineClazz = ( socket.connected ) ? "" : "offline";
-		messageTag = $(`<li id='${message.id}' class="clearfix ${offlineClazz}">
-					<div class="message-data align-right">
-					<span class="message-data-time" >${message.time}</span> &nbsp; &nbsp;
-					<span class="message-data-name" >${message.sender.username}</span> <i class="fa fa-circle me"></i>
-					
-					</div>
-					<div class="message other-message float-right">
-						${messageDivTag}
-					</div>
-				</li>`)
-              
-        me.chatHistoryTag.find("ul").append( messageTag );
-		me.chatHistoryMsgNoTag.html( $(".chat-history").find("ul li").length );
-	}
-
-    // ------------------------------------------------------------------------
-    // Run INIT
-
-    me.init()
+    me.init();
 }

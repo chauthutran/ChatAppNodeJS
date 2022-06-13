@@ -99,7 +99,7 @@ Utils.getParamValueFromURL = function( paramName ) {
 }
 
 
-function removeFromArray( list, value, propertyName )
+Utils.removeFromArray = function( list, value, propertyName )
 {
 	var index;
 
@@ -123,41 +123,4 @@ function removeFromArray( list, value, propertyName )
 
 	return index;
 }
-
-
-// function outputMessage(message) {
-
-//     var messageTag = "";
-//     var messageDivTag;
-//     if( message.type != undefined )
-//     {
-//         if( message.type == "IMAGE" )
-//         {
-//             messageDivTag = `<img style="width: 300px;" src="${message.text}">`;
-//         }
-//         else
-//         {
-//             messageDivTag = `<a href="${message.text}" target="_blank">${message.text}</a>`;
-//         }
-//     } 
-//     else {
-//         messageDivTag = `<span>${message.text}</span>`;
-//     }
-
-
-//     const offlineClazz = ( socket.connected ) ? "" : "offline";
-//     messageTag = $(`<li id='${message.id}' class="clearfix ${offlineClazz}">
-//                 <div class="message-data align-right">
-//                 <span class="message-data-time" >${message.time}</span> &nbsp; &nbsp;
-//                 <span class="message-data-name" >${message.sender.username}</span> <i class="fa fa-circle me"></i>
-                
-//                 </div>
-//                 <div class="message other-message float-right">
-//                     ${messageDivTag}
-//                 </div>
-//             </li>`)
-
-//     $('.chat-history').find("ul").append( messageTag );
-//     $(".chat-num-messages").html( $(".chat-history").find("ul li").length );
-// }
 

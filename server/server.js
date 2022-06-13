@@ -11,7 +11,7 @@ const {
 } = require('./utils/users');
 
 
-const botName = 'ChatApp Bot';
+const botName = 'chatForm Bot';
 const users = [];
 
 // =======================================================================================================
