@@ -21,7 +21,7 @@ function SocketIO( _username ) {
 
         me.chatFormObj = new ChatForm( me.username, me.socket );
 
-		me.socket.emit('username', username);
+		me.socket.emit('username', me.username);
 
 		me.socket.on('userList', (_users,_socketId) => {
 			// if( socketId === null ){
@@ -31,7 +31,7 @@ function SocketIO( _username ) {
 
 			// get current user infor
 			users.forEach((user) => {
-				if( user.username == username )
+				if( user.username == me.username )
 				{
 					curUser = user;
 				}
@@ -71,8 +71,11 @@ function SocketIO( _username ) {
 		me.socket.on('connect', function () {
 			console.log('Socket is connected.');
 
-			$("#chatView").hide();
-			$("#initChatMsg").html(`Wellcome, ${username}`).show();
+			if( me.chatFormObj.selectedUser == undefined )
+			{
+				$("#chatView").hide();
+				$("#initChatMsg").html(`Welcome, ${me.username}`).show();
+			}
 
 			// Send the queue message if there is any message unsent
 			var offlineMessages = getOfflineMessages();

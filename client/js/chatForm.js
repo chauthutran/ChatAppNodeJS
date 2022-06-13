@@ -32,6 +32,7 @@ function ChatForm( _username, _socket )
     // INIT method
 
     me.init = function() {
+        me.setCurrentUserInfo();
 
         // Add Emoji in Emoji Dashboard
         for( var i=0; i<emojiCodes.length; i++ )
@@ -48,13 +49,13 @@ function ChatForm( _username, _socket )
 
     me.setCurrentUserInfo = function()
     {
-	    me.curUsernameTag.html( username );
+	    me.curUsernameTag.html( me.username );
 
         // For curUser icon background-color
         var randomColor = Math.floor(Math.random()*16777215).toString(16);
-        me.curUserIconTag.html( username.charAt(0).toUpperCase() );
+        me.curUserIconTag.html( me.username.charAt(0).toUpperCase() );
         me.curUserIconTag.css("backgroundColor", "#" + randomColor);
-        me.curUserIconTag.css("color", "#" + invertColor( randomColor ));
+        me.curUserIconTag.css("color", "#" + Utils.invertColor( randomColor ));
     }
 
 
@@ -112,7 +113,7 @@ function ChatForm( _username, _socket )
 		// Add the proper list here
 		users.forEach((user) => {
 			
-			if( user.username != username )
+			if( user.username != me.username )
 			{
 				const firstChar = user.username.charAt(0);
 				var userTag = $(`<li class="clearfix" style="cursor:pointer;" user=${JSON.stringify( user )}>
@@ -134,8 +135,8 @@ function ChatForm( _username, _socket )
 
     me.setupEvent_UserItemOnClick = function( userTag ) {
 		userTag.click( function(e){
-			selectedUser = JSON.parse( userTag.attr("user") ); 
-			$(".chat-with").html( `Chat with ${selectedUser.username}`);
+			me.selectedUser = JSON.parse( userTag.attr("user") ); 
+			$(".chat-with").html( `Chat with ${me.selectedUser.username}`);
 			$(".chat-num-messages").html( $(".chat-history").find("ul li").length );
 
 			$("#chatView").show();
@@ -154,7 +155,7 @@ function ChatForm( _username, _socket )
 			return false;
 		}
 
-		const data = Utils.formatMessage( curUser, selectedUser, msg );
+		const data = Utils.formatMessage( curUser, me.selectedUser, msg );
 		if( me.socket.connected )
 		{
 			// Emit message to server
