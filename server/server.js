@@ -66,7 +66,7 @@ const io = require("socket.io")(server, {
 // ====================
 io.on('connection', socket => {
 
-	console.log("------ Connected to server : " + socket.id);
+	console.log("------ Connected to server : " + socket.id );
 
 	socket.on('username', (username) => {
 		users.push({
@@ -77,16 +77,15 @@ io.on('connection', socket => {
 		let len = users.length;
 		len--;
 
-		io.emit('userList',users,users[len].id); 
+		io.emit('userList',users,users[len].id);
+		
+		console.log( users );
 
 	});
 
 	
 	socket.on('getMsg', (data) => {
-		console.log("----------getMsg");
-		console.log(data);
-		socket.broadcast.to(data.sender.id).to(data.receiver.id).emit('sendMsg', data );
-		// socket.to(data.sender.id).to(data.receiver.id).emit('sendMsg', data );
+		socket.broadcast.emit('sendMsg', data );
 	});
 
 	socket.on('disconnect',()=>{
@@ -99,6 +98,10 @@ io.on('connection', socket => {
 		  }
 		  io.emit('exit',users); 
   	});
+
+	// socket.on('reconnect', function() {
+	// 	console.log('reconnect fired!');
+	// });
 
 	// ------------------------------------------------------------------------------
 	// Upload files
@@ -123,66 +126,7 @@ io.on('connection', socket => {
 	// END - Upload files
 	// ---------------------
 	
-
-	// ------------------------------------------------------------------------------
-	// END - Upload files
-	// ---------------------	
-
-	// socket.on('joinRoom', ({ username, room }) => {
-	// const user = userJoin(socket.id, username, room);
-
-	// socket.join(user.room);
-
-	// // Welcome current user
-	// socket.emit('message', formatMessage(botName, user.username, 'Welcome to ChatApp!'));
-
-	// // Broadcast when a user connects
-	// socket.broadcast
-	// .to(user.room)
-	// .emit(
-	// 	'message',
-	// 	formatMessage(botName, user.username, `${user.username} has joined the chat`)
-	// );
-
-	// // Send users and room info
-	// io.to(user.room).emit('roomUsers', {
-	// room: user.room,
-	// users: getRoomUsers(user.room)
-	// });
 });
 
-// // Listen for chatMessage
-// socket.on('chatMessage', data => {
-// 	const user = getCurrentUser(socket.id);
-// 	if( user != undefined )
-// 	{
-// 	// const message = "server reveived your message : " + msg + " " + moment().format('h:mm a');
-// 	// io.to(user.room).emit('message', formatMessage(user.username, msg));
-// 	io.to(user.room).emit('message', data );
-// 	// io.to(data.receiver).to(data.sender).emit('message', data );
-// 	}
-
-
-	
-// });
-
-// // Runs when client disconnects
-// socket.on('disconnect', () => {
-// 	const user = userLeave(socket.id);
-
-// 	if (user) {
-// 	io.to(user.room).emit(
-// 		'message',
-// 		formatMessage(botName, user.username, `${user.username} has left the chat`)
-// 	);
-
-// 	// Send users and room info
-// 	io.to(user.room).emit('roomUsers', {
-// 		room: user.room,
-// 		users: getRoomUsers(user.room)
-// 	});
-// 	}
-// });
-// });
 
 server.listen(3111, () => console.log(`Server running on port 3111`));

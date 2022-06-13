@@ -172,7 +172,6 @@ body {
 
 .online, .offline, .me {
   margin-right: 3px;
-  font-size: 10px;
 }
 
 .online {
@@ -181,6 +180,14 @@ body {
 
 .offline {
   color: #E38968;
+}
+
+.offline .message {
+  background-color: #b3b5b7 !important;
+}
+
+.chat .chat-history .offline .other-message:after {
+  border-bottom-color: #b3b5b7 !important;
 }
 
 .me {

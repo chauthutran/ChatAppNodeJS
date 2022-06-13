@@ -27,27 +27,6 @@ const formatMessage = (sender, receiver, text, type) => {
 }
 
 
-const removeFromArray = function( list, propertyName, value )
-{
-	var index;
-
-	for( let i = 0; i < list.length; i++ )
-	{
-		var item = list[i];
-		if ( item[ propertyName ] == value ) 
-		{
-			index = i;
-			break;
-		}
-	}
-
-	if ( index != undefined ) 
-	{
-		list.splice( index, 1 );
-	}
-
-	return list;
-};
 
 const findItemFromList = ( list, value, propertyName ) =>
 {
@@ -110,4 +89,36 @@ function insertText( inputField, insertedValue ) {
     var textBefore = v.substring( 0, cursorPos );
     var textAfter  = v.substring( cursorPos, v.length );
     inputField.val( textBefore + insertedValue + textAfter );
+}
+
+
+
+function getParamValueFromURL ( paramName ) {
+    return (new URLSearchParams(window.location.search)).get( paramName );
+}
+
+
+function removeFromArray( list, value, propertyName )
+{
+	var index;
+
+	if( list )
+	{
+		$.each( list, function( i, item )
+		{
+			if ( item[ propertyName ] == value ) 
+			{
+				index = i;
+				return false;
+			}
+		});
+	
+		if ( index !== undefined ) 
+		{
+			list.splice( index, 1 );
+		}
+	}
+	
+
+	return index;
 }

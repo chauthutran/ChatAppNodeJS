@@ -1,11 +1,8 @@
 const chatForm = document.getElementById('chat-form');
 const chatMessages = document.querySelector('.chat-history');
-const roomName = document.getElementById('room-name');
 let userListTag =  $('#users');
 
 let socket;
-let isConnectServer = true;
-let queueMsgList = [];
 let socketId = null;
 let selectedUser = null;
 let messages = [];
@@ -13,11 +10,9 @@ let msgData = null;
 let users = [];
 
 
-// Get username and room from URL
+// Get username from URL
 let curUser = {};
-const { username, room } = Qs.parse(location.search, {
-	ignoreQueryPrefix: true,
-});
+const username = getParamValueFromURL("username");
 
 
 // Add Emoji in Emoji Dashboard
@@ -43,9 +38,6 @@ if( username != undefined )
 	
 	try
 	{
-		console.log("username: " + username );
-		console.log("room: " + room );
-
 		socket = io("http://localhost:3111", {
 			reconnectionDelayMax: 1000,
 			withCredentials: true,
@@ -57,7 +49,7 @@ if( username != undefined )
 		socket.emit('username', username);
 
 		socket.on('userList', (_users,_socketId) => {
-			if( socketId === null){
+			if( socketId === null ){
 				socketId = _socketId;
 			}
 			users = _users;
@@ -79,19 +71,50 @@ if( username != undefined )
 
 		socket.on('sendMsg', (data) => {
 			
-			console.log("---- sendMsg");
-			console.log(data);
-
-			let messageTag = $('.chat-messages').find("div#" + data.id);
+			let messageTag = $('.chat-history').find("li#" + data.id);
 			if( messageTag.length > 0 )
 			{
 				messageTag.removeClass("offline");
-				removeFromArray( queueMsgList, "id", data.id );
+				removeOfflineMessage( data );
 			}
 			else
 			{
 				outputMessage(data);
 			}
+		});
+
+		
+	  	// ---------------------------------------------------------------------------
+
+		  socket.on('connect_error', function() {
+			console.log('Failed to connect to server');
+			// $("#chatView").hide();
+			// $("#initChatMsg").html('Failed to connect to server').show();
+		});
+
+		socket.on('connect', function () {
+			console.log('Socket is connected.');
+
+			$("#chatView").hide();
+			$("#initChatMsg").html(`Wellcome, ${username}`).show();
+
+			// Send the queue message if there is any message unsent
+			var offlineMessages = getOfflineMessages();
+			for( i=offlineMessages.length - 1; i>=0; i-- )
+			{
+				// Emit message to server
+				socket.emit('getMsg', offlineMessages[i]);
+			}
+
+		});
+
+		
+		socket.on('reconnect', function() {
+			console.log('reconnect fired!');
+		});
+		
+		socket.on('disconnect', function () {
+			console.log('Socket is disconnected.');
 		});
 
 		// -----------------------------------------------------------------------
@@ -100,6 +123,27 @@ if( username != undefined )
 		var siofu = new SocketIOFileUpload(socket);
 
 		siofu.listenOnInput(document.getElementById("upload_input"));
+
+		// siofu.addEventListener("load", function (event) {
+
+		// });
+
+		siofu.addEventListener("start", function (event) {
+			console.log( "start upload file .... ");
+			if( !socket.connected )
+			{
+				const file = event.file;
+				const reader = new FileReader();
+				reader.addEventListener( "load", () => {
+					const type = ( event.file.type.indexOf("image/") == 0 ) ? "IMAGE" : "FILE";
+					const data = formatMessage( curUser, selectedUser, reader.result, type );
+				
+					saveOfflineMessage( data );
+					outputMessage( data );
+				})
+				reader.readAsDataURL( file );
+			}
+		  });
 
 		// Do something on upload progress:
 		siofu.addEventListener("progress", function (event) {
@@ -113,43 +157,11 @@ if( username != undefined )
 
 			const type = ( event.file.type.indexOf("image/") == 0 ) ? "IMAGE" : "FILE";
 		  	const data = formatMessage( curUser, selectedUser, `http://localhost:3111/${event.detail.name}`, type );
-			if( isConnectServer )
-			{
-				socket.emit('getMsg', data );
-				outputMessage( data );
-			}
+			
+			socket.emit('getMsg', data );
+			outputMessage( data );
 		});
 
-	  	// ---------------------------------------------------------------------------
-
-		socket.on('connect_error', function() {
-			// console.log('Failed to connect to server');
-			$("#chatView").hide();
-			$("#initChatMsg").html('Failed to connect to server').show();
-
-			isConnectServer = false;
-		});
-
-		socket.on('connect', function () {
-			console.log('Socket is connected.');
-
-			$("#chatView").hide();
-			$("#initChatMsg").html('Wellcome to Chat App').show();
-
-			isConnectServer = true;
-
-			// Send the queue message if there is any message unsent
-			for( i=queueMsgList.length - 1; i>=0; i-- )
-			{
-				// Emit message to server
-				socket.emit('chatMessage', queueMsgList[i]);
-			}
-
-		});
-
-		socket.on('disconnect', function () {
-			console.log('Socket is disconnected.');
-		});
 	}
 	catch( ex )
 	{
@@ -180,15 +192,15 @@ if( username != undefined )
 		}
 
 		const data = formatMessage( curUser, selectedUser, msg );
-		if( isConnectServer )
+		if( socket.connected )
 		{
 			// Emit message to server
 			socket.emit('getMsg', data );
 		}
 		else
 		{
-			const data = formatMessage( curUser, selectedUser, msg );
-			queueMsgList.push( data );
+			// const data = formatMessage( curUser, selectedUser, msg );
+			saveOfflineMessage( data );
 		}
 
 		outputMessage( data );
@@ -218,7 +230,9 @@ if( username != undefined )
 			messageDivTag = `<span>${message.text}</span>`;
 		}
 
-		messageTag = $(`<li class="clearfix">
+
+		const offlineClazz = ( socket.connected ) ? "" : "offline";
+		messageTag = $(`<li id='${message.id}' class="clearfix ${offlineClazz}">
 					<div class="message-data align-right">
 					<span class="message-data-time" >${message.time}</span> &nbsp; &nbsp;
 					<span class="message-data-name" >${message.sender.username}</span> <i class="fa fa-circle me"></i>
@@ -272,7 +286,7 @@ if( username != undefined )
 		})
 	}
 
-	//Prompt the user before leave chat room
+	// Log-out button
 	$('.leave-btn').click(function() {
 		const leaveRoom = confirm('Are you sure you want to log-out ?');
 		if (leaveRoom) {
