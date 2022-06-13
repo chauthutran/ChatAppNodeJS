@@ -1,10 +1,13 @@
 
 
-function getParamValueFromURL ( paramName ) {
+function Utils() {}
+
+
+Utils.getParamValueFromURL = function ( paramName ) {
     return (new URLSearchParams(window.location.search)).get( paramName );
 }
 
-const checkInternetStatusOnline = () => {
+Utils.checkInternetStatusOnline = function() {
     return (navigator.onLine);
     
     // if (navigator.onLine) {
@@ -15,7 +18,7 @@ const checkInternetStatusOnline = () => {
     // }
 }
 
-const formatMessage = (sender, receiver, text, type) => {
+Utils.formatMessage = function(sender, receiver, text, type) {
     return {
         sender,
         receiver,
@@ -28,8 +31,7 @@ const formatMessage = (sender, receiver, text, type) => {
 
 
 
-const findItemFromList = ( list, value, propertyName ) =>
-{
+Utils.findItemFromList = function( list, value, propertyName ) {
 	let item;
 
 	if( list )
@@ -55,7 +57,7 @@ const findItemFromList = ( list, value, propertyName ) =>
 	return item;
 }
 
-function invertColor(hex) {
+Utils.invertColor = function( hex ) {
     if (hex.indexOf('#') === 0) {
         hex = hex.slice(1);
     }
@@ -71,19 +73,18 @@ function invertColor(hex) {
         g = (255 - parseInt(hex.slice(2, 4), 16)).toString(16),
         b = (255 - parseInt(hex.slice(4, 6), 16)).toString(16);
     // pad each with zeros and return
-    return '#' + padZero(r) + padZero(g) + padZero(b);
+    return '#' + Utils.padZero(r) + Utils.padZero(g) + Utils.padZero(b);
 }
 
 
-function padZero(str, len) {
+Utils.padZero = function(str, len){
     len = len || 2;
     var zeros = new Array(len).join('0');
     return (zeros + str).slice(-len);
 }
 
 
-
-function insertText( inputField, insertedValue ) {
+Utils.insertText = function( inputField, insertedValue ) {
     var cursorPos = inputField.prop('selectionStart');
     var v = inputField.val();
     var textBefore = v.substring( 0, cursorPos );
@@ -93,7 +94,7 @@ function insertText( inputField, insertedValue ) {
 
 
 
-function getParamValueFromURL ( paramName ) {
+Utils.getParamValueFromURL = function( paramName ) {
     return (new URLSearchParams(window.location.search)).get( paramName );
 }
 
@@ -122,3 +123,41 @@ function removeFromArray( list, value, propertyName )
 
 	return index;
 }
+
+
+// function outputMessage(message) {
+
+//     var messageTag = "";
+//     var messageDivTag;
+//     if( message.type != undefined )
+//     {
+//         if( message.type == "IMAGE" )
+//         {
+//             messageDivTag = `<img style="width: 300px;" src="${message.text}">`;
+//         }
+//         else
+//         {
+//             messageDivTag = `<a href="${message.text}" target="_blank">${message.text}</a>`;
+//         }
+//     } 
+//     else {
+//         messageDivTag = `<span>${message.text}</span>`;
+//     }
+
+
+//     const offlineClazz = ( socket.connected ) ? "" : "offline";
+//     messageTag = $(`<li id='${message.id}' class="clearfix ${offlineClazz}">
+//                 <div class="message-data align-right">
+//                 <span class="message-data-time" >${message.time}</span> &nbsp; &nbsp;
+//                 <span class="message-data-name" >${message.sender.username}</span> <i class="fa fa-circle me"></i>
+                
+//                 </div>
+//                 <div class="message other-message float-right">
+//                     ${messageDivTag}
+//                 </div>
+//             </li>`)
+
+//     $('.chat-history').find("ul").append( messageTag );
+//     $(".chat-num-messages").html( $(".chat-history").find("ul li").length );
+// }
+
