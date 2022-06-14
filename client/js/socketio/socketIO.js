@@ -24,11 +24,18 @@ function SocketIO( _username ) {
 		me.socket.emit('username', me.username);
 
 		me.socket.on('messageList', ( list ) => {
+			console.log(list);
 			if( me.chatFormObj.selectedUser != undefined )
 			{ 
 				me.chatFormObj.outputMessageList( list );
 			}
 		});
+
+		
+		me.socket.on('sendMsg', data => {
+			console.log(data)
+			me.chatFormObj.outputMessage( data );
+		})
 
 
 		me.socket.on('userList', (_users,_socketId) => {
@@ -85,7 +92,7 @@ function SocketIO( _username ) {
 				// Remove the image because it will be duplicate after UploadFile completed
 				if( data.type != undefined )
 				{
-					me.chatFormObj.chatHistoryTag.find(`ul li#${data.id}`).remove();
+					me.chatFormObj.chatHistoryTag.find(`ul li#${data.msgid}`).remove();
 				}
 			}
 

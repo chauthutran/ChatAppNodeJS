@@ -1,10 +1,32 @@
+
 const express = require('express');
 var SocketIOFileUpload = require("socketio-file-upload")
 const fs = require('fs')
 
 const {
 	getMessages
-} = require('./utils/messages');
+} = require('./models/messages');
+
+
+// const mongo = require('mongodb').MongoClient;
+// // const client = require('socket.io').listen(4000).sockets;
+
+// // Connect to mongo
+// mongo.connect('mongodb://127.0.0.1/mongochat', function(err, db){
+//     if(err){
+//         throw err;
+//     }
+// console.log("connected mongoDB");
+// })
+
+const mongoose = require("mongoose");
+const Msg = require("./models/messages");
+
+const mongoDB = "mongodb+srv://tranchau:Test1234@cluster0.n0jz7.mongodb.net/chatApp?retryWrites=true&w=majority";
+
+mongoose.connect(mongoDB).then(() => {
+	console.log("------------- mongo connected ");
+}).catch(err => console.log(err))
 
 
 const users = [];
@@ -59,9 +81,14 @@ const io = require("socket.io")(server, {
 // =======================================================================================================
 // Create connection
 // ====================
+
 io.on('connection', socket => {
 
 	console.log("------ Connected to server : " + socket.id );
+
+	// Msg.find().then(( result ) => {
+	// 	socket.emit("messageList", result );
+	// })
 
 	socket.on('username', (username) => {
 		users.push({
@@ -72,23 +99,35 @@ io.on('connection', socket => {
 		let len = users.length;
 		len--;
 
-		io.emit('userList', users, users[len].id);
-		io.emit('messageList', getMessages() );
-		
-		console.log( users );
-
+		io.emit('userList', users, users[len].id);	
 	});
 
 	
-	socket.on('loadMessageList', ( username1, username2 ) => {
-		io.emit('messageList', getMessages( username1, username2 ) );
+	socket.on('loadMessageList', ( users ) => {
+		// Msg.find(
+		// 	{ sender: users.username1, receiver: users.username2 }
+		// ).then(( result ) => {
+		// 	socket.emit('messageList', result );
+		// })
+
+		Msg.find().or([
+			{ sender: users.username1, receiver: users.username2 },
+			{ sender: users.username2, receiver: users.username1 }
+		]).then(( result ) => {
+			socket.emit('messageList', result );
+		})
 	});
 
 	
 
 	
 	socket.on('getMsg', (data) => {
-		socket.broadcast.emit('sendMsg', data );
+		console.log(data);
+		const message = new Msg( data );
+		message.save().then(() => {
+			console.log("data saved in mongodb");
+			socket.broadcast.emit('sendMsg', data );
+		})
 	});
 
 	socket.on('disconnect',()=>{

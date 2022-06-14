@@ -18,14 +18,14 @@ Utils.checkInternetStatusOnline = function() {
     // }
 }
 
-Utils.formatMessage = function(sender, receiver, text, type ) {
+Utils.formatMessage = function(sender, receiver, msg, filetype ) {
     return {
         sender,
         receiver,
-        text,
-        type,
+        msg,
+        filetype,
         time: moment().format('h:mm a'),
-        id: (new Date()).getTime()
+        msgid: (new Date()).getTime()
     };
 }
 

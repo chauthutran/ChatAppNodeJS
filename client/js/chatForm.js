@@ -146,7 +146,7 @@ function ChatForm( _username, _socket )
 			
 			me.chatViewTag.show();
 			me.initChatMsgTag.hide();
-			// me.socket.emit('loadMessageList', ( me.username, me.selectedUser.username ) );
+			me.socket.emit('loadMessageList', { username1: me.username, username2: me.selectedUser.username } );
 		})
 	}
 
@@ -154,14 +154,14 @@ function ChatForm( _username, _socket )
 	me.submitChatMessage = function(e) {
 		e.preventDefault();
 
-		// Get message text
+		// Get message.msg
 		let msg = me.msgTag.val();
 		msg = msg.trim();
 		if (!msg) {
 			return false;
 		}
 
-		const data = Utils.formatMessage( curUser, me.selectedUser, msg );
+		const data = Utils.formatMessage( curUser.username, me.selectedUser.username, msg );
 		if( me.socket.connected )
 		{
 			// Emit message to server
@@ -181,8 +181,8 @@ function ChatForm( _username, _socket )
     
     // Output user list
     me.outputMessageList = function( list ) {
-		me.chatWithTag.html( `Chat with ${me.selectedUser.username}`);
-        // me.chatHistoryTag.find("ul").html("");
+		me.chatWithTag.html( `Chat with ${me.selectedUser}`);
+        me.chatHistoryTag.find("ul").html("");
 
         for( let i=0; i<list.length; i++ )
         {
@@ -198,33 +198,33 @@ function ChatForm( _username, _socket )
     // Output messages sent
     me.outputMessage = function(message) {
 
-        const displayed = me.chatHistoryTag.find(`ul li#${message.id}`).length;
+        const displayed = me.chatHistoryTag.find(`ul li#${message.msgid}`).length;
         if( displayed ) return;
         
 
 		var messageTag = "";
 		var messageDivTag;
-		if( message.type != undefined )
+		if( message.filetype != undefined )
 		{
-			if( message.type == "IMAGE" )
+			if( message.filetype == "IMAGE" )
 			{
-				messageDivTag = `<img style="width: 300px;" src="${message.text}">`;
+				messageDivTag = `<img style="width: 300px;" src="${message.msg}">`;
 			}
 			else
 			{
-				messageDivTag = `<a href="${message.text}" target="_blank">${message.text}</a>`;
+				messageDivTag = `<a href="${message.msg}" target="_blank">${message.msg}</a>`;
 			}
 		} 
 		else {
-			messageDivTag = `<span>${message.text}</span>`;
+			messageDivTag = `<span>${message.msg}</span>`;
 		}
 
 
 		const offlineClazz = ( me.socket.connected ) ? "" : "offline";
-		messageTag = $(`<li id='${message.id}' class="clearfix ${offlineClazz}">
+		messageTag = $(`<li id='${message.msgid}' class="clearfix ${offlineClazz}">
 					<div class="message-data align-right">
 					<span class="message-data-time" >${message.time}</span> &nbsp; &nbsp;
-					<span class="message-data-name" >${message.sender.username}</span> <i class="fa fa-circle me"></i>
+					<span class="message-data-name" >${message.sender}</span> <i class="fa fa-circle me"></i>
 					
 					</div>
 					<div class="message other-message float-right">
