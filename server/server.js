@@ -2,16 +2,11 @@ const express = require('express');
 var SocketIOFileUpload = require("socketio-file-upload")
 const fs = require('fs')
 
-// const formatMessage = require('./utils/messages');
 const {
-	userJoin,
-	getCurrentUser,
-	userLeave,
-	getRoomUsers
-} = require('./utils/users');
+	getMessages
+} = require('./utils/messages');
 
 
-const botName = 'chatForm Bot';
 const users = [];
 
 // =======================================================================================================
@@ -77,11 +72,19 @@ io.on('connection', socket => {
 		let len = users.length;
 		len--;
 
-		io.emit('userList',users,users[len].id);
+		io.emit('userList', users, users[len].id);
+		io.emit('messageList', getMessages() );
 		
 		console.log( users );
 
 	});
+
+	
+	socket.on('loadMessageList', ( username1, username2 ) => {
+		io.emit('messageList', getMessages( username1, username2 ) );
+	});
+
+	
 
 	
 	socket.on('getMsg', (data) => {

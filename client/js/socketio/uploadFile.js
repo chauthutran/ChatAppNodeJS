@@ -29,7 +29,7 @@ function UploadFile( _socket, _mainObj )
 				const reader = new FileReader();
 				reader.addEventListener( "load", () => {
 					const type = ( event.file.type.indexOf("image/") == 0 ) ? "IMAGE" : "FILE";
-					const data = Utils.formatMessage( curUser, me.mainObj.selectedUser, reader.result, type );
+					const data = Utils.formatMessage( curUser, me.mainObj.selectedUser, reader.result, type, true );
 				
 					saveOfflineMessage( data );
 					me.mainObj.outputMessage( data );

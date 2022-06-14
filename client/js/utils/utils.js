@@ -18,7 +18,7 @@ Utils.checkInternetStatusOnline = function() {
     // }
 }
 
-Utils.formatMessage = function(sender, receiver, text, type) {
+Utils.formatMessage = function(sender, receiver, text, type ) {
     return {
         sender,
         receiver,

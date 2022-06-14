@@ -23,6 +23,14 @@ function SocketIO( _username ) {
 
 		me.socket.emit('username', me.username);
 
+		me.socket.on('messageList', ( list ) => {
+			if( me.chatFormObj.selectedUser != undefined )
+			{ 
+				me.chatFormObj.outputMessageList( list );
+			}
+		});
+
+
 		me.socket.on('userList', (_users,_socketId) => {
 			// if( socketId === null ){
 			// 	socketId = _socketId;
@@ -44,22 +52,10 @@ function SocketIO( _username ) {
 		// 	userList = _userList;
 		// });
 
-
-		me.socket.on('sendMsg', (data) => {
-			
-			let messageTag = $('.chat-history').find("li#" + data.id);
-			if( messageTag.length > 0 )
-			{
-				messageTag.removeClass("offline");
-				removeOfflineMessage( data );
-			}
-			else
-			{
-				me.chatFormObj.outputMessage(data);
-			}
-		});
-
 		
+
+
+
 	  	// ---------------------------------------------------------------------------
 
         me.socket.on('connect_error', function() {
@@ -81,8 +77,16 @@ function SocketIO( _username ) {
 			var offlineMessages = getOfflineMessages();
 			for( i=offlineMessages.length - 1; i>=0; i-- )
 			{
+				const data = offlineMessages[i];
+
 				// Emit message to server
-				me.socket.emit('getMsg', offlineMessages[i]);
+				me.socket.emit('getMsg', data );
+
+				// Remove the image because it will be duplicate after UploadFile completed
+				if( data.type != undefined )
+				{
+					me.chatFormObj.chatHistoryTag.find(`ul li#${data.id}`).remove();
+				}
 			}
 
 		});

@@ -24,6 +24,11 @@ function ChatForm( _username, _socket )
     me.emojjiDashboardTag = $(".emoji-dashboard");
     me.showEmojiDashboardTag = $("#showEmojiDashboard");
     
+	
+	me.chatWithTag = $(".chat-with");
+	me.chatViewTag = $("#chatView");
+	me.initChatMsgTag = $("#initChatMsg");
+	
     me.chatHistoryTag = $('.chat-history');
     me.chatHistoryMsgNoTag = $(".chat-num-messages")
 
@@ -133,14 +138,15 @@ function ChatForm( _username, _socket )
 		
 	}
 
+	// Select an user
     me.setupEvent_UserItemOnClick = function( userTag ) {
 		userTag.click( function(e){
 			me.selectedUser = JSON.parse( userTag.attr("user") ); 
-			$(".chat-with").html( `Chat with ${me.selectedUser.username}`);
-			$(".chat-num-messages").html( $(".chat-history").find("ul li").length );
 
-			$("#chatView").show();
-			$("#initChatMsg").hide();
+			
+			me.chatViewTag.show();
+			me.initChatMsgTag.hide();
+			// me.socket.emit('loadMessageList', ( me.username, me.selectedUser.username ) );
 		})
 	}
 
@@ -172,10 +178,27 @@ function ChatForm( _username, _socket )
 		me.msgTag.val("");
 	}
 
+    
+    // Output user list
+    me.outputMessageList = function( list ) {
+		me.chatWithTag.html( `Chat with ${me.selectedUser.username}`);
+        // me.chatHistoryTag.find("ul").html("");
+
+        for( let i=0; i<list.length; i++ )
+        {
+            me.outputMessage( list[i] );
+        }
+
+		me.chatHistoryMsgNoTag.html( list.length );
+		me.chatViewTag.show();
+		me.initChatMsgTag.hide();
+	}
+
+
     // Output messages sent
     me.outputMessage = function(message) {
 
-        const displayed =  me.chatHistoryTag.find(`ul li#${message.id}`).length;
+        const displayed = me.chatHistoryTag.find(`ul li#${message.id}`).length;
         if( displayed ) return;
         
 
