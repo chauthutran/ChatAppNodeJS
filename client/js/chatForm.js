@@ -57,10 +57,10 @@ function ChatForm( _username, _socket )
 	    me.curUsernameTag.html( me.username );
 
         // For curUser icon background-color
-        var randomColor = Math.floor(Math.random()*16777215).toString(16);
-        me.curUserIconTag.html( me.username.charAt(0).toUpperCase() );
-        me.curUserIconTag.css("backgroundColor", "#" + randomColor);
-        me.curUserIconTag.css("color", "#" + Utils.invertColor( randomColor ));
+        me.curUserIconTag.html( me.username.substring(0, 2).toUpperCase() );
+        // me.curUserIconTag.css("backgroundColor", "#" + randomColor);
+        me.curUserIconTag.css("color", "#" + Utils.stringToDarkColour( me.username ));
+        me.curUserIconTag.css("backgroundColor", Utils.stringToLightColour( me.username ));
     }
 
 
@@ -120,9 +120,10 @@ function ChatForm( _username, _socket )
 			
 			if( user.username != me.username )
 			{
-				const firstChar = user.username.charAt(0);
+				const firstChar = user.username.substring(0,2).toUpperCase();
+                const bgColorIcon = Utils.stringToLightColour( user.username );
 				var userTag = $(`<li class="clearfix" style="cursor:pointer;" user=${JSON.stringify( user )}>
-						<div class="user-icon">${firstChar}</div>
+						<div class="user-icon" style="background-color: ${bgColorIcon}">${firstChar}</div>
 						<div class="about">
 						<div class="name">${user.username}</div>
 						<div class="status">

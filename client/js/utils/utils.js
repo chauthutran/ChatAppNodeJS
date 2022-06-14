@@ -57,31 +57,25 @@ Utils.findItemFromList = function( list, value, propertyName ) {
 	return item;
 }
 
-Utils.invertColor = function( hex ) {
-    if (hex.indexOf('#') === 0) {
-        hex = hex.slice(1);
+Utils.stringToLightColour = function(str) {
+    var hash = 0;
+    for (var i = 0; i < str.length; i++) {
+        hash = str.charCodeAt(i) + ((hash << 5) - hash);
     }
-    // convert 3-digit hex to 6-digits.
-    if (hex.length === 3) {
-        hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+    var colour = '#';
+    for (var i = 0; i < 3; i++) {
+        var value = (hash >> (i * 8)) & 0xFF;
+        colour += ('00' + value.toString(16)).substr(-2);
     }
-    if (hex.length !== 6) {
-        throw new Error('Invalid HEX color.');
-    }
-    // invert color components
-    var r = (255 - parseInt(hex.slice(0, 2), 16)).toString(16),
-        g = (255 - parseInt(hex.slice(2, 4), 16)).toString(16),
-        b = (255 - parseInt(hex.slice(4, 6), 16)).toString(16);
-    // pad each with zeros and return
-    return '#' + Utils.padZero(r) + Utils.padZero(g) + Utils.padZero(b);
+    return colour;
 }
 
-
-Utils.padZero = function(str, len){
-    len = len || 2;
-    var zeros = new Array(len).join('0');
-    return (zeros + str).slice(-len);
+Utils.stringToDarkColour = function(str) {
+    const col = Utils.stringToLightColour( str );
+    const amt = -50;
+    return (((col & 0x0000FF) + amt) | ((((col >> 8) & 0x00FF) + amt) << 8) | (((col >> 16) + amt) << 16)).toString(16); 
 }
+
 
 
 Utils.insertText = function( inputField, insertedValue ) {
