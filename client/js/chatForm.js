@@ -37,7 +37,7 @@ function ChatForm( _username, _socket )
     // INIT method
 
     me.init = function() {
-        me.setCurrentUserInfo();
+        // me.setCurrentUserInfo();
 
         // Add Emoji in Emoji Dashboard
         for( var i=0; i<emojiCodes.length; i++ )
@@ -54,13 +54,13 @@ function ChatForm( _username, _socket )
 
     me.setCurrentUserInfo = function()
     {
-	    me.curUsernameTag.html( me.username );
+	    me.curUsernameTag.html( me.curUser.fullName );
 
         // For curUser icon background-color
-        me.curUserIconTag.html( me.username.substring(0, 2).toUpperCase() );
+        me.curUserIconTag.html( me.curUser.fullName.substring(0, 2).toUpperCase() );
         // me.curUserIconTag.css("backgroundColor", "#" + randomColor);
-        me.curUserIconTag.css("color", "#" + Utils.stringToDarkColour( me.username ));
-        me.curUserIconTag.css("backgroundColor", Utils.stringToLightColour( me.username ));
+        me.curUserIconTag.css("color", "#" + Utils.stringToDarkColour( me.curUser.username ));
+        me.curUserIconTag.css("backgroundColor", Utils.stringToLightColour( me.curUser.username ));
     }
 
 
@@ -112,7 +112,11 @@ function ChatForm( _username, _socket )
     // Supportive methods
 
     // Output user list
-    me.outputUsers = function( users ) {
+    me.outputUsers = function( curUser, users ) {
+
+        me.curUser = curUser;
+        me.setCurrentUserInfo();
+
 		me.userListTag.html("");
 		
 		// Add the proper list here
@@ -122,10 +126,12 @@ function ChatForm( _username, _socket )
 			{
 				const firstChar = user.username.substring(0,2).toUpperCase();
                 const bgColorIcon = Utils.stringToLightColour( user.username );
-				var userTag = $(`<li class="clearfix" style="cursor:pointer;" user=${JSON.stringify( user )}>
-						<div class="user-icon" style="background-color: ${bgColorIcon}">${firstChar}</div>
+                const colorIcon = Utils.stringToDarkColour( user.username );
+                const userInfo = JSON.stringify( user );
+				var userTag = $(`<li class="clearfix" style="cursor:pointer;" user='${userInfo}'>
+						<div class="user-icon" style="background-color: ${bgColorIcon}; color: ${colorIcon}">${firstChar}</div>
 						<div class="about">
-						<div class="name">${user.username}</div>
+						<div class="name">${user.fullName}</div>
 						<div class="status">
 							<i class="fa fa-circle online"></i> online
 						</div>
@@ -162,7 +168,7 @@ function ChatForm( _username, _socket )
 			return false;
 		}
 
-		const data = Utils.formatMessage( curUser.username, me.selectedUser.username, msg );
+		const data = Utils.formatMessage( me.curUser.username, me.selectedUser.username, msg );
 		if( me.socket.connected )
 		{
 			// Emit message to server

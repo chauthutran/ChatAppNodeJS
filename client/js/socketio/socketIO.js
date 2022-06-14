@@ -38,20 +38,21 @@ function SocketIO( _username ) {
 		})
 
 
-		me.socket.on('userList', (_users,_socketId) => {
-			// if( socketId === null ){
-			// 	socketId = _socketId;
-			// }
-			var users = _users;
+		me.socket.on('contactList', (data) => {
+			
+			// me.chatFormObj.curUser = data.curUser;
+			// var users = data.contacts;
 
-			// get current user infor
-			users.forEach((user) => {
-				if( user.username == me.username )
-				{
-					curUser = user;
-				}
-			});
-			me.chatFormObj.outputUsers( users );
+			// // get current user infor
+			// users.forEach((user) => {
+			// 	if( user.username == me.username )
+			// 	{
+			// 		curUser = user;
+			// 	}
+			// });
+
+			console.log( data );
+			me.chatFormObj.outputUsers( data.curUser, data.contacts );
 		}); 	
 
 

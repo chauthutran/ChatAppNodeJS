@@ -3,24 +3,10 @@ const express = require('express');
 var SocketIOFileUpload = require("socketio-file-upload")
 const fs = require('fs')
 
-const {
-	getMessages
-} = require('./models/messages');
-
-
-// const mongo = require('mongodb').MongoClient;
-// // const client = require('socket.io').listen(4000).sockets;
-
-// // Connect to mongo
-// mongo.connect('mongodb://127.0.0.1/mongochat', function(err, db){
-//     if(err){
-//         throw err;
-//     }
-// console.log("connected mongoDB");
-// })
 
 const mongoose = require("mongoose");
-const Msg = require("./models/messages");
+const MessagesCollection = require("./models/messages");
+const UsersCollection = require("./models/users");
 
 const mongoDB = "mongodb+srv://tranchau:Test1234@cluster0.n0jz7.mongodb.net/chatApp?retryWrites=true&w=majority";
 
@@ -78,6 +64,7 @@ const io = require("socket.io")(server, {
 // =======================================================================================================
 
 
+
 // =======================================================================================================
 // Create connection
 // ====================
@@ -86,65 +73,53 @@ io.on('connection', socket => {
 
 	console.log("------ Connected to server : " + socket.id );
 
-	// Msg.find().then(( result ) => {
-	// 	socket.emit("messageList", result );
-	// })
+	
 
 	socket.on('username', (username) => {
-		users.push({
-			id : socket.id,
-			username : username
+	
+		UsersCollection.findOne({username: username}).then(( curUser ) => {
+			UsersCollection.find(
+				{ username: { $in: curUser.contacts } }
+			).then(( contactList ) => {
+				console.log(contactList);
+				socket.emit('contactList', { curUser: curUser, contacts: contactList });
+			})
 		});
 
-		let len = users.length;
-		len--;
-
-		io.emit('userList', users, users[len].id);	
 	});
-
 	
 	socket.on('loadMessageList', ( users ) => {
-		// Msg.find(
-		// 	{ sender: users.username1, receiver: users.username2 }
-		// ).then(( result ) => {
-		// 	socket.emit('messageList', result );
-		// })
-
-		Msg.find().or([
+		MessagesCollection.find().or([
 			{ sender: users.username1, receiver: users.username2 },
 			{ sender: users.username2, receiver: users.username1 }
 		]).then(( result ) => {
 			socket.emit('messageList', result );
 		})
 	});
-
-	
-
 	
 	socket.on('getMsg', (data) => {
-		console.log(data);
-		const message = new Msg( data );
+		const message = new MessagesCollection( data );
 		message.save().then(() => {
 			console.log("data saved in mongodb");
 			socket.broadcast.emit('sendMsg', data );
 		})
 	});
 
-	socket.on('disconnect',()=>{
-		    	
-		for(let i=0; i < users.length; i++){
-		        	
+	socket.on('disconnect',()=> {
+		for(let i=0; i < users.length; i++) {
 			if(users[i].id === socket.id){
 				  users.splice(i,1); 
 			}
-		  }
-		  io.emit('exit',users); 
+		}
+
+		io.emit('exit',users); 
   	});
 
 	// socket.on('reconnect', function() {
 	// 	console.log('reconnect fired!');
 	// });
 
+	
 	// ------------------------------------------------------------------------------
 	// Upload files
 	// ---------------------
