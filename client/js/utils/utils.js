@@ -2,6 +2,14 @@
 
 function Utils() {}
 
+// ==============================================================================
+// For URL
+
+Utils.getParamValueFromURL = function( paramName ) {
+    return (new URLSearchParams(window.location.search)).get( paramName );
+}
+
+
 
 Utils.getParamValueFromURL = function ( paramName ) {
     return (new URLSearchParams(window.location.search)).get( paramName );
@@ -18,17 +26,60 @@ Utils.checkInternetStatusOnline = function() {
     // }
 }
 
-Utils.formatMessage = function(sender, receiver, msg, filetype ) {
+
+// ==============================================================================
+// For MESSAGES
+
+Utils.formatMessage = function(sender, receiver, msg, filetype, name ) {
     return {
         sender,
         receiver,
         msg,
         filetype,
-        time: moment().format('h:mm a'),
-        msgid: (new Date()).getTime()
+        name,
+        datetime: DateUtils.getDbCurrentDateTime()
     };
 }
 
+Utils.mergeWithOfflineMessages = function( messageList, username1, username2 ) {
+    var list = getOfflineMessages();
+    for( var i=0; i<list.length; i++ )
+    {
+        const message = list[i];
+        if( message.sender == username1 || message.receiver == username1 
+            || message.sender == username2 || message.receiver == username2 )
+            {
+                messageList.push( message );
+            }
+    }
+
+    return Utils.sortByKey( messageList, "datetime" );
+}
+
+
+// ==============================================================================
+// For LIST
+
+Utils.sortByKey = function( array, key, order ) {
+	return array.sort( function( a, b ) {
+		
+		var x = a[key]; 
+		var y = b[key];
+
+		if ( x === undefined ) x = "";
+		if ( y === undefined ) y = "";
+		
+		if ( order === undefined )
+		{
+			return ( ( x < y ) ? -1 : ( ( x > y ) ? 1 : 0 ) );
+		}
+		else
+		{
+			if ( order == "asc" ) return ( ( x < y ) ? -1 : ( ( x > y ) ? 1 : 0 ) );
+			else if ( order == "desc" ) return ( ( x > y ) ? -1 : ( ( x < y ) ? 1 : 0 ) );
+		}
+	});
+};
 
 
 Utils.findItemFromList = function( list, value, propertyName ) {
@@ -57,42 +108,6 @@ Utils.findItemFromList = function( list, value, propertyName ) {
 	return item;
 }
 
-Utils.stringToLightColour = function(str) {
-    var hash = 0;
-    for (var i = 0; i < str.length; i++) {
-        hash = str.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    var colour = '#';
-    for (var i = 0; i < 3; i++) {
-        var value = (hash >> (i * 8)) & 0xFF;
-        colour += ('00' + value.toString(16)).substr(-2);
-    }
-    return colour;
-}
-
-Utils.stringToDarkColour = function(str) {
-    const col = Utils.stringToLightColour( str );
-    const amt = -50;
-    return (((col & 0x0000FF) + amt) | ((((col >> 8) & 0x00FF) + amt) << 8) | (((col >> 16) + amt) << 16)).toString(16); 
-}
-
-
-
-Utils.insertText = function( inputField, insertedValue ) {
-    var cursorPos = inputField.prop('selectionStart');
-    var v = inputField.val();
-    var textBefore = v.substring( 0, cursorPos );
-    var textAfter  = v.substring( cursorPos, v.length );
-    inputField.val( textBefore + insertedValue + textAfter );
-}
-
-
-
-Utils.getParamValueFromURL = function( paramName ) {
-    return (new URLSearchParams(window.location.search)).get( paramName );
-}
-
-
 Utils.removeFromArray = function( list, value, propertyName )
 {
 	var index;
@@ -115,6 +130,43 @@ Utils.removeFromArray = function( list, value, propertyName )
 	}
 	
 
-	return index;
+	return list;
 }
+
+
+// ==============================================================================
+// For COLOR
+
+Utils.stringToLightColour = function(str) {
+    var hash = 0;
+    for (var i = 0; i < str.length; i++) {
+        hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    var colour = '#';
+    for (var i = 0; i < 3; i++) {
+        var value = (hash >> (i * 8)) & 0xFF;
+        colour += ('00' + value.toString(16)).substr(-2);
+    }
+    return colour;
+}
+
+Utils.stringToDarkColour = function(str) {
+    const col = Utils.stringToLightColour( str );
+    const amt = -50;
+    return (((col & 0x0000FF) + amt) | ((((col >> 8) & 0x00FF) + amt) << 8) | (((col >> 16) + amt) << 16)).toString(16); 
+}
+
+
+
+// ==============================================================================
+// For TEXT
+
+Utils.insertText = function( inputField, insertedValue ) {
+    var cursorPos = inputField.prop('selectionStart');
+    var v = inputField.val();
+    var textBefore = v.substring( 0, cursorPos );
+    var textAfter  = v.substring( cursorPos, v.length );
+    inputField.val( textBefore + insertedValue + textAfter );
+}
+
 

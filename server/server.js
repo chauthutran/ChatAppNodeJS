@@ -15,7 +15,7 @@ mongoose.connect(mongoDB).then(() => {
 }).catch(err => console.log(err))
 
 
-const users = [];
+const onlineUsers = [];
 
 // =======================================================================================================
 // Create APP
@@ -25,11 +25,9 @@ const app = express();
 app.use(SocketIOFileUpload.router);
 app.use(express.static(__dirname + '/uploads'))
 app.get('/', (req, res) => {
-	console.log(req.query.path);
 	res.sendFile(__dirname + "/uploads/" + req.query.path);
 })
 app.get('/deleteimage', (req, res) => {
-	console.log(req.query);
 	res.json(req.query.path);
 	fs.unlinkSync(__dirname + "/uploads/" + req.query.path, () => {
 		
@@ -46,14 +44,15 @@ app.get('/deleteimage', (req, res) => {
 // ====================
 
 const server = require('http').Server(app);
-
+// const clientURL = "http://localhost:8080";
+const clientURL = "https://client-dev.psi-connect.org";
 
 // =======================================================================================================
 // INIT Socket IO
 // ====================
 const io = require("socket.io")(server, {
 	cors: {
-		origin: "http://localhost:8080",
+		origin: clientURL,
 		methods: ["GET", "POST"],
 		credentials: true
 	}
@@ -72,48 +71,71 @@ const io = require("socket.io")(server, {
 io.on('connection', socket => {
 
 	console.log("------ Connected to server : " + socket.id );
-
 	
-
 	socket.on('username', (username) => {
-	
+
+		onlineUsers.push( username );
+
 		UsersCollection.findOne({username: username}).then(( curUser ) => {
 			UsersCollection.find(
 				{ username: { $in: curUser.contacts } }
-			).then(( contactList ) => {
-				console.log(contactList);
-				socket.emit('contactList', { curUser: curUser, contacts: contactList });
+			)
+			.sort({ fullName: 1 })
+			.then(( contactList ) => {
+				socket.emit('contactList', { curUser: curUser, contacts: contactList, onlineList: onlineUsers });
 			})
 		});
 
 	});
+
+	socket.on('login', function( user ){
+		
+		onlineUsers.push( user.username );
+console.log('a user ' +  user.username + ' logged');
+		socket.emit('userStatusUpdate', {username: user.username, status: "online"} );
+		// saving userId to object with socket ID
+		// users[socket.id] = data.userId;
+	});
 	
+	socket.on('logout', function( user ){
+		
+		onlineUsers.splice( onlineUsers.indexOf( user.username), 1 );
+console.log('a user ' +  user.username + ' logout');
+		socket.emit('userStatusUpdate', {username: user.username, status: "offline"} );
+
+		// saving userId to object with socket ID
+		// users[socket.id] = data.userId;
+	});
+
 	socket.on('loadMessageList', ( users ) => {
 		MessagesCollection.find().or([
 			{ sender: users.username1, receiver: users.username2 },
 			{ sender: users.username2, receiver: users.username1 }
-		]).then(( result ) => {
-			socket.emit('messageList', result );
+		])
+		.sort({ datetime: 1 })
+		.then(( result ) => {
+			socket.emit('messageList', { messages: result, users: users } );
 		})
 	});
 	
 	socket.on('getMsg', (data) => {
 		const message = new MessagesCollection( data );
+		// Save message to mongodb
 		message.save().then(() => {
-			console.log("data saved in mongodb");
+			// After saving message to server
 			socket.broadcast.emit('sendMsg', data );
 		})
 	});
 
 	socket.on('disconnect',()=> {
-		for(let i=0; i < users.length; i++) {
-			if(users[i].id === socket.id){
-				  users.splice(i,1); 
+		for( let i=0; i <onlineUsers.length; i++ ) {
+			if( onlineUsers[i].id === socket.id ){
+				onlineUsers.splice(i,1); 
 			}
 		}
 
-		io.emit('exit',users); 
-  	});
+		io.emit('exit', onlineUsers ); 
+	});
 
 	// socket.on('reconnect', function() {
 	// 	console.log('reconnect fired!');

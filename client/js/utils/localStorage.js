@@ -28,6 +28,6 @@ function getOfflineMessages()
 function removeOfflineMessage( messageData )
 {
     var dataList = getOfflineMessages();
-    Utils.removeFromArray( dataList, messageData.id, "id" );
+    dataList = Utils.removeFromArray( dataList, messageData.id, "id" );
     localStorage.setItem("messages", JSON.stringify( dataList ) );
 }

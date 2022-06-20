@@ -25,7 +25,8 @@ function ChatForm( _username, _socket )
     me.showEmojiDashboardTag = $("#showEmojiDashboard");
     
 	
-	me.chatWithTag = $(".chat-with");
+	me.chatWithUserTag = $(".chat-with");
+    me.chatWithIconTag = $(".chat-with-icon");
 	me.chatViewTag = $("#chatView");
 	me.initChatMsgTag = $("#initChatMsg");
 	
@@ -109,18 +110,18 @@ function ChatForm( _username, _socket )
 
 
     // ------------------------------------------------------------------------
-    // Supportive methods
+    // Supportive methods - For Users
 
     // Output user list
-    me.outputUsers = function( curUser, users ) {
+    me.outputUsers = function( data ) {
 
-        me.curUser = curUser;
+        me.curUser = data.curUser;
         me.setCurrentUserInfo();
 
 		me.userListTag.html("");
 		
 		// Add the proper list here
-		users.forEach((user) => {
+		data.contacts.forEach((user) => {
 			
 			if( user.username != me.username )
 			{
@@ -128,15 +129,16 @@ function ChatForm( _username, _socket )
                 const bgColorIcon = Utils.stringToLightColour( user.username );
                 const colorIcon = Utils.stringToDarkColour( user.username );
                 const userInfo = JSON.stringify( user );
-				var userTag = $(`<li class="clearfix" style="cursor:pointer;" user='${userInfo}'>
-						<div class="user-icon" style="background-color: ${bgColorIcon}; color: ${colorIcon}">${firstChar}</div>
-						<div class="about">
-						<div class="name">${user.fullName}</div>
-						<div class="status">
-							<i class="fa fa-circle online"></i> online
-						</div>
-						</div>
-					</li>`);
+                const status = (  data.onlineList.indexOf( user.username ) >= 0 ) ? "online" : "offline";
+				var userTag = $(`<li class="clearfix" style="cursor:pointer;" username='${user.username}' user='${userInfo}'>
+                                    <div class="user-icon" style="background-color: ${bgColorIcon}; color: ${colorIcon}">${firstChar}</div>
+                                    <div class="about">
+                                        <div class="name">${user.fullName}</div>
+                                        <div class="status">
+                                            <i class="fa fa-circle ${status}"></i> ${status}
+                                        </div>
+                                    </div>
+                                </li>`);
 
 				me.setupEvent_UserItemOnClick( userTag );
 				me.userListTag.append( userTag );
@@ -156,6 +158,18 @@ function ChatForm( _username, _socket )
 			me.socket.emit('loadMessageList', { username1: me.username, username2: me.selectedUser.username } );
 		})
 	}
+   
+    me.updateUserStatus = function( statusData )
+    {
+        me.userListTag.find(`li#${statusData.username}`).find("div.status > i")
+            .removeClass("online")
+            .removeClass("offline")
+            .addClass( statusData.status );
+    }
+
+
+    // ------------------------------------------------------------------------
+    // Supportive methods - For messages
 
     // Message submit
 	me.submitChatMessage = function(e) {
@@ -188,7 +202,11 @@ function ChatForm( _username, _socket )
     
     // Output user list
     me.outputMessageList = function( list ) {
-		me.chatWithTag.html( `Chat with ${me.selectedUser}`);
+		me.chatWithUserTag.html( `Chat with ${me.selectedUser.fullName}` );
+        me.chatWithIconTag.html( me.selectedUser.fullName.substring(0,2).toUpperCase() )
+        me.chatWithIconTag.css( "color", "#" + Utils.stringToDarkColour( me.selectedUser.username ) );
+        me.chatWithIconTag.css( "backgroundColor", Utils.stringToLightColour( me.selectedUser.username ) );
+
         me.chatHistoryTag.find("ul").html("");
 
         for( let i=0; i<list.length; i++ )
@@ -196,7 +214,6 @@ function ChatForm( _username, _socket )
             me.outputMessage( list[i] );
         }
 
-		me.chatHistoryMsgNoTag.html( list.length );
 		me.chatViewTag.show();
 		me.initChatMsgTag.hide();
 	}
@@ -204,43 +221,48 @@ function ChatForm( _username, _socket )
 
     // Output messages sent
     me.outputMessage = function(message) {
+        var messageTag = me.chatHistoryTag.find(`ul li[id="${message.datetime}"]`)
+        if( messageTag.length > 0 && messageTag.hasClass("offline") ) 
+        {
+            messageTag.removeClass("offline");
+            removeOfflineMessage( message );
+        }
+        else
+        {
+            var messageTextDivTag;
+            if( message.filetype != undefined )
+            {
+                if( message.filetype == "IMAGE" )
+                {
+                    messageTextDivTag = `<img style="width: 300px;" src="${message.msg}">`;
+                }
+                else
+                {
+                    messageTextDivTag = `<a href="${message.msg}" target="_blank">${message.name}</a>`;
+                }
+            } 
+            else {
+                messageTextDivTag = `<span>${message.msg}</span>`;
+            }
+    
+    
+            const offlineClazz = ( me.socket.connected ) ? "" : "offline";
+            messageTag = $(`<li id='${message.datetime}' class="clearfix ${offlineClazz}">
+                        <div class="message-data align-right">
+                        <span class="message-data-time" >${DateUtils.formatDisplayDateTime(message.datetime)}</span> &nbsp; &nbsp;
+                        <span class="message-data-name" >${message.sender}</span> <i class="fa fa-circle me"></i>
+                        
+                        </div>
+                        <div class="message other-message float-right">
+                            ${messageTextDivTag}
+                        </div>
+                    </li>`)
+                  
+            me.chatHistoryTag.find("ul").append( messageTag );
+            me.chatHistoryMsgNoTag.html( "already " + NumberUtils.formatDisplayNumber( me.chatHistoryTag.find("ul li").length ) + " messages" );
+        }
 
-        const displayed = me.chatHistoryTag.find(`ul li#${message.msgid}`).length;
-        if( displayed ) return;
-        
-
-		var messageTag = "";
-		var messageDivTag;
-		if( message.filetype != undefined )
-		{
-			if( message.filetype == "IMAGE" )
-			{
-				messageDivTag = `<img style="width: 300px;" src="${message.msg}">`;
-			}
-			else
-			{
-				messageDivTag = `<a href="${message.msg}" target="_blank">${message.msg}</a>`;
-			}
-		} 
-		else {
-			messageDivTag = `<span>${message.msg}</span>`;
-		}
-
-
-		const offlineClazz = ( me.socket.connected ) ? "" : "offline";
-		messageTag = $(`<li id='${message.msgid}' class="clearfix ${offlineClazz}">
-					<div class="message-data align-right">
-					<span class="message-data-time" >${message.time}</span> &nbsp; &nbsp;
-					<span class="message-data-name" >${message.sender}</span> <i class="fa fa-circle me"></i>
-					
-					</div>
-					<div class="message other-message float-right">
-						${messageDivTag}
-					</div>
-				</li>`)
-              
-        me.chatHistoryTag.find("ul").append( messageTag );
-		me.chatHistoryMsgNoTag.html( me.chatHistoryTag.find("ul li").length );
+		
 	}
 
 

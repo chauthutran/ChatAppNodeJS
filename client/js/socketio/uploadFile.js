@@ -23,19 +23,23 @@ function UploadFile( _socket, _mainObj )
 
 		siofu.addEventListener("start", function (event) {
 			// If the me.socket is not connected, save the file in local storage
-			if( !me.socket.connected )
-			{
+		
+			console.log("STart .... ");
+			
+
+			// if( !me.socket.connected )
+			// {
 				const file = event.file;
 				const reader = new FileReader();
 				reader.addEventListener( "load", () => {
 					const type = ( event.file.type.indexOf("image/") == 0 ) ? "IMAGE" : "FILE";
-					const data = Utils.formatMessage( curUser, me.mainObj.selectedUser, reader.result, type, true );
-				
-					saveOfflineMessage( data );
+					const data = Utils.formatMessage( me.mainObj.curUser.username, me.mainObj.selectedUser.username, reader.result, type, file.name );
+					// 	saveOfflineMessage( data );
+
 					me.mainObj.outputMessage( data );
 				})
 				reader.readAsDataURL( file );
-			}
+			// }
 		});
 
 		// Do something on upload progress:
@@ -46,13 +50,16 @@ function UploadFile( _socket, _mainObj )
 
 		// Do something when a file is uploaded:
 		siofu.addEventListener("complete", function (event) {
+			console.log("complete .... ");
 		  	console.log(event);
 
 			const type = ( event.file.type.indexOf("image/") == 0 ) ? "IMAGE" : "FILE";
-		  	const data = Utils.formatMessage( curUser, me.mainObj.selectedUser, `http://localhost:3111/${event.detail.name}`, type );
+		  	const data = Utils.formatMessage( me.mainObj.curUser.username, me.mainObj.selectedUser.username, `http://localhost:3111/${event.detail.name}`, type );
 			
 			me.socket.emit('getMsg', data );
-			me.mainObj.outputMessage( data );
+			// me.mainObj.outputMessage( data );
+
+			// removeOfflineMessage( data );
 		});
 	}
 

@@ -11,6 +11,7 @@ function SocketIO( _username ) {
     // INIT method
 
     me.init = function() {
+
 		me.socket = io("http://localhost:3111", {
             reconnectionDelayMax: 1000,
             withCredentials: true,
@@ -21,52 +22,10 @@ function SocketIO( _username ) {
 
         me.chatFormObj = new ChatForm( me.username, me.socket );
 
-		me.socket.emit('username', me.username);
-
-		me.socket.on('messageList', ( list ) => {
-			console.log(list);
-			if( me.chatFormObj.selectedUser != undefined )
-			{ 
-				me.chatFormObj.outputMessageList( list );
-			}
-		});
-
-		
-		me.socket.on('sendMsg', data => {
-			console.log(data)
-			me.chatFormObj.outputMessage( data );
-		})
-
-
-		me.socket.on('contactList', (data) => {
-			
-			// me.chatFormObj.curUser = data.curUser;
-			// var users = data.contacts;
-
-			// // get current user infor
-			// users.forEach((user) => {
-			// 	if( user.username == me.username )
-			// 	{
-			// 		curUser = user;
-			// 	}
-			// });
-
-			console.log( data );
-			me.chatFormObj.outputUsers( data.curUser, data.contacts );
-		}); 	
-
-
-		// me.socket.on('exit', (_userList) => {
-		// 	userList = _userList;
-		// });
-
-		
-
-
-
 	  	// ---------------------------------------------------------------------------
+		// SocketIO Connection handler
 
-        me.socket.on('connect_error', function() {
+		me.socket.on('connect_error', function() {
 			console.log('Failed to connect to server');
 			// $("#chatView").hide();
 			// $("#initChatMsg").html('Failed to connect to server').show();
@@ -86,15 +45,7 @@ function SocketIO( _username ) {
 			for( i=offlineMessages.length - 1; i>=0; i-- )
 			{
 				const data = offlineMessages[i];
-
-				// Emit message to server
 				me.socket.emit('getMsg', data );
-
-				// Remove the image because it will be duplicate after UploadFile completed
-				if( data.type != undefined )
-				{
-					me.chatFormObj.chatHistoryTag.find(`ul li#${data.msgid}`).remove();
-				}
 			}
 
 		});
@@ -106,7 +57,47 @@ function SocketIO( _username ) {
 		
 		me.socket.on('disconnect', function () {
 			console.log('Socket is disconnected.');
+			me.socket.emit('logout', { username: me.username } );
 		});
+
+
+	  	// ---------------------------------------------------------------------------
+		// Event Listeners 
+
+		// USER IS ONLINE
+		me.socket.emit('login', { username: me.username } );
+		
+		me.socket.on('userStatusUpdate', ( statusData ) => {
+			me.chatFormObj.updateUserStatus( statusData );
+		});
+		
+
+
+		me.socket.emit('username', me.username);
+
+		me.socket.on('contactList', (data) => {
+			me.chatFormObj.outputUsers( data );
+		});
+
+		me.socket.on('messageList', ( data ) => {
+			const messages = Utils.mergeWithOfflineMessages( data.messages, data.users.username1, data.users.username2 );
+			me.chatFormObj.outputMessageList( messages );
+		});
+
+		
+		me.socket.on('sendMsg', data => {
+			me.chatFormObj.outputMessage( data );
+		})
+
+
+
+
+		// me.socket.on('exit', (_userList) => {
+		// 	userList = _userList;
+		// });
+
+
+
 
 	}
 

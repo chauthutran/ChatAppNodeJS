@@ -12,7 +12,7 @@ const msgSchema = new mongoose.Schema({
 		type: String,
 		required: true
 	},
-	msgid: {
+	datetime: {
 		type: String,
 		required: true
 	},
