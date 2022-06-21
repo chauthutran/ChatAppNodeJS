@@ -82,6 +82,13 @@ function SocketIO( _username ) {
 			me.chatFormObj.outputUsers( data );
 		});
 
+		me.socket.on('wrongUserName', (data) => {
+			alert( data.msg );
+		});
+
+
+		
+
 		me.socket.on('messageList', ( data ) => {
 			const messages = Utils.mergeWithOfflineMessages( data.messages, data.users.username1, data.users.username2 );
 			me.chatFormObj.outputMessageList( messages );

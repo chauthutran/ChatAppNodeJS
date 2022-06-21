@@ -47,7 +47,7 @@ function ChatForm( _username, _socket )
             liTag.val("&#" + emojiCodes[i]+ ";")
             liTag.append("&#" + emojiCodes[i]+ ";");
 
-            $("#emojiDashboard").find("ul").append(liTag);
+            me.emojjiDashboardTag.find("ul").append(liTag);
         }
 
         me.setUp_Events();
@@ -122,7 +122,11 @@ function ChatForm( _username, _socket )
                     if( !me.socket.connected )
                     {
                         saveOfflineMessage( data );
-                    }	
+                    }
+                    else
+                    {
+                        me.socket.emit('getMsg', data );
+                    }
 
 					me.outputMessage( data );
 				});
@@ -252,9 +256,12 @@ function ChatForm( _username, _socket )
         }
 
         var messageTag = me.chatHistoryTag.find(`ul li[id="${message.datetime}"]`);
-        if( messageTag.length > 0 && messageTag.hasClass("offline") ) 
+        if( messageTag.length > 0 ) 
         {
-            messageTag.removeClass("offline");
+            if( messageTag.hasClass("offline") )
+            {
+                messageTag.removeClass("offline");
+            }
         }
         else
         {
@@ -276,17 +283,33 @@ function ChatForm( _username, _socket )
     
     
             const offlineClazz = ( me.socket.connected ) ? "" : "offline";
-            messageTag = $(`<li id='${message.datetime}' class="clearfix ${offlineClazz}">
+
+            if( message.sender == me.username )
+            {
+                messageTag = $(`<li id='${message.datetime}' class="${offlineClazz}">
+                                    <div class="message-data">
+                                        <span class="message-data-time" >${DateUtils.formatDisplayDateTime(message.datetime)}</span> &nbsp; &nbsp;
+                                        <span class="message-data-name" >${message.sender}</span> <i class="fa fa-circle me"></i>
+                                        
+                                        </div>
+                                        <div class="message my-message">
+                                            ${messageTextDivTag}
+                                        </div>
+                                </li>`)
+            }
+            else
+            {
+                messageTag = $(`<li id='${message.datetime}' class="clearfix ${offlineClazz}">
                         <div class="message-data align-right">
-                        <span class="message-data-time" >${DateUtils.formatDisplayDateTime(message.datetime)}</span> &nbsp; &nbsp;
-                        <span class="message-data-name" >${message.sender}</span> <i class="fa fa-circle me"></i>
-                        
+                            <span class="message-data-time" >${DateUtils.formatDisplayDateTime(message.datetime)}</span> &nbsp; &nbsp;
+                            <span class="message-data-name" >${message.sender}</span> <i class="fa fa-circle me"></i>
                         </div>
                         <div class="message other-message float-right">
                             ${messageTextDivTag}
                         </div>
                     </li>`)
-                  
+            }
+
             me.chatHistoryTag.find("ul").append( messageTag );
             me.chatHistoryMsgNoTag.html( "already " + NumberUtils.formatDisplayNumber( me.chatHistoryTag.find("ul li").length ) + " messages" );
         }

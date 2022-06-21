@@ -3,7 +3,7 @@
 const express = require('express');
 const socketIO = require('socket.io');
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3111;
 
 
 const clientURL = "https://client-dev.psi-connect.org";
@@ -59,7 +59,9 @@ io.on('connection', (socket) => {
 		console.log("====================================================== username : " + username );
 		onlineUsers.push( username );
 
-		UsersCollection.findOne({username: username}).then(( curUser ) => {
+		if( list.length > 0 )
+		{
+			const curUser = list[0]
 			UsersCollection.find(
 				{ username: { $in: curUser.contacts } }
 			)
@@ -67,7 +69,11 @@ io.on('connection', (socket) => {
 			.then(( contactList ) => {
 				socket.emit('contactList', { curUser: curUser, contacts: contactList, onlineList: onlineUsers });
 			})
-		});
+		}
+		else
+		{
+			socket.emit('wrongUserName', { msg: `Cannot find the username ${username}`});
+		}
 
 
 	});
