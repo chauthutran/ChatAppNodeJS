@@ -1,13 +1,7 @@
-# chatForm App
-Realtime chat app with websockets using Node.js, Express and Socket.io with Vanilla JS on the frontend with a custom UI
-[![Run on Repl.it](https://repl.it/badge/github/bradtraversy/chatapp)](https://repl.it/github/bradtraversy/chatapp)
-## Usage
-```
-npm install
-npm run dev
+# Node.js Socket.io Example
 
-Go to localhost:3111
-```
+This example accompanies the
+[Using WebSockets on Heroku with Node.js](https://devcenter.heroku.com/articles/node-websockets)
+tutorial.
 
-## Notes
-The *_html_css* folder is just a starter template to follow along with the tutorial at https://www.youtube.com/watch?v=jD7FnbI76Hg&t=1339s. It is not part of the app
+[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy)

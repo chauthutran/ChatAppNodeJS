@@ -106,11 +106,35 @@ function ChatForm( _username, _socket )
             Utils.insertText( me.msgTag, $(this).html() );
             me.emojjiDashboardTagslideUp('fast');
         });
+
+
+        me.uploadInputTag = $("#upload_input");
+        me.uploadInputTag.change( function(event){
+            var files = event.target.files;
+            if( ( files != undefined || files != null ) && files.length > 0 )
+            {
+                const file = files[0];
+				const reader = new FileReader();
+				reader.addEventListener( "load", () => {
+					const type = ( file.type.indexOf("image/") == 0 ) ? "IMAGE" : "FILE";
+					const data = Utils.formatMessage( me.curUser.username, me.selectedUser.username, reader.result, type, file.name );
+
+                    if( !me.socket.connected )
+                    {
+                        saveOfflineMessage( data );
+                    }	
+
+					me.outputMessage( data );
+				});
+				reader.readAsDataURL( file );
+            }
+        })
     }
 
 
     // ------------------------------------------------------------------------
     // Supportive methods - For Users
+    
 
     // Output user list
     me.outputUsers = function( data ) {
@@ -200,7 +224,7 @@ function ChatForm( _username, _socket )
 	}
 
     
-    // Output user list
+    // Output message list
     me.outputMessageList = function( list ) {
 		me.chatWithUserTag.html( `Chat with ${me.selectedUser.fullName}` );
         me.chatWithIconTag.html( me.selectedUser.fullName.substring(0,2).toUpperCase() )
@@ -219,13 +243,18 @@ function ChatForm( _username, _socket )
 	}
 
 
-    // Output messages sent
+    // Output a message
     me.outputMessage = function(message) {
-        var messageTag = me.chatHistoryTag.find(`ul li[id="${message.datetime}"]`)
+        // Only remove message from localStorage if the socket is online and this message existed 
+        if( me.socket.connected )
+        { 
+            removeOfflineMessage( message ); 
+        }
+
+        var messageTag = me.chatHistoryTag.find(`ul li[id="${message.datetime}"]`);
         if( messageTag.length > 0 && messageTag.hasClass("offline") ) 
         {
             messageTag.removeClass("offline");
-            removeOfflineMessage( message );
         }
         else
         {

@@ -12,12 +12,13 @@ function SocketIO( _username ) {
 
     me.init = function() {
 
-		me.socket = io("http://localhost:3111", {
+		me.socket = io( serverURL, {
             reconnectionDelayMax: 1000,
             withCredentials: true,
             extraHeaders: {
                 "Access-Control-Allow-Origin": "origin-list"
             }
+			// , transports: ['websocket', 'polling', 'flashsocket']
         });
 
         me.chatFormObj = new ChatForm( me.username, me.socket );
@@ -25,8 +26,10 @@ function SocketIO( _username ) {
 	  	// ---------------------------------------------------------------------------
 		// SocketIO Connection handler
 
-		me.socket.on('connect_error', function() {
+		me.socket.on('connect_error', function(err) {
 			console.log('Failed to connect to server');
+
+			console.log(err);
 			// $("#chatView").hide();
 			// $("#initChatMsg").html('Failed to connect to server').show();
 		});

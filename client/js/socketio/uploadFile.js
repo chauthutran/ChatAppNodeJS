@@ -54,7 +54,7 @@ function UploadFile( _socket, _mainObj )
 		  	console.log(event);
 
 			const type = ( event.file.type.indexOf("image/") == 0 ) ? "IMAGE" : "FILE";
-		  	const data = Utils.formatMessage( me.mainObj.curUser.username, me.mainObj.selectedUser.username, `http://localhost:3111/${event.detail.name}`, type );
+		  	const data = Utils.formatMessage( me.mainObj.curUser.username, me.mainObj.selectedUser.username, `{serverURL}/${event.detail.name}`, type );
 			
 			me.socket.emit('getMsg', data );
 			// me.mainObj.outputMessage( data );

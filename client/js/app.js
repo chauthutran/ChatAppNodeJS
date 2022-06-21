@@ -19,7 +19,7 @@ function ChatApp()
         {
             me.initSocketIO();
 
-            new UploadFile( me.socket, me.chatFormObj );
+            // new UploadFile( me.socket, me.chatFormObj );
         }
     }
 

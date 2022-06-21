@@ -19,7 +19,11 @@ const msgSchema = new mongoose.Schema({
 	filetype: {
 		type: String,
 		required: false
-	}
+	},
+	name: {
+        type: String,
+        required: false
+    }
 })
 
 const MessagesCollection = mongoose.model('messages', msgSchema);
