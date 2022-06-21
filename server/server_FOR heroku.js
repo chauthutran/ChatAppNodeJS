@@ -3,10 +3,9 @@
 const express = require('express');
 const socketIO = require('socket.io');
 
-const PORT = process.env.PORT || 3111;
+const PORT = process.env.PORT || 3000;
 
 
-// const clientURL = "https://localhost:8080";
 const clientURL = "https://client-dev.psi-connect.org";
 const INDEX = '/index.html';
 
@@ -122,7 +121,8 @@ io.on('connection', (socket) => {
 		// Save message to mongodb
 		message.save().then(() => {
 			// After saving message to server
-			socket.broadcast.emit('sendMsg', data );
+			// socket.broadcast.emit('sendMsg', data );
+			socket.emit('sendMsg', data );
 		})
 	});
 
@@ -141,7 +141,6 @@ io.on('connection', (socket) => {
 		io.emit('exit', onlineUsers ); 
 	});
 
-  // socket.on('disconnect', () => console.log('Client disconnected'));
 });
 
 // setInterval(() => io.emit('timeTEST', new Date().toTimeString()), 1000);
