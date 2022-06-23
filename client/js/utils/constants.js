@@ -1,6 +1,6 @@
 
-const serverURL = "http://localhost:3111"
-// const serverURL = "https://socketchatservertest.herokuapp.com"
+// const serverURL = "http://localhost:3111"
+const serverURL = "https://socketchatservertest.herokuapp.com"
 
 // const serverURL = "https://pwachatserver.herokuapp.com";
 

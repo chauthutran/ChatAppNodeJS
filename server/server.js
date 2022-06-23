@@ -27,7 +27,7 @@ const app = express();
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 app.get('/', (req, res) => {
-	res.send('hello world');
+	res.send('Chat server started !!!');
 })
 
 /** 
@@ -61,20 +61,17 @@ app.get("/data", (req, res) => {
 app.post('/data', function(req, res){
 	// res(res.body);
 
-	const message = new MessagesCollection( req.body );
+	const data = req.body;
+	const message = new MessagesCollection( data );
 	// Save message to mongodb
 	message.save().then(() => {
 		// After saving message to server
 		// socket.broadcast.emit('sendMsg', data );
 
-		;
-		message.receiver;
-
-		if( socketList[message.sender] != undefined )
-		{
-			socketList[message.sender].emit( )
+		const to = data.receiver;
+		if(socketList.hasOwnProperty(to)){
+			socketList[to].emit( 'sendMsg', data );
 		}
-		
 
 		console.log("---------- Data is sent.");
 		res.send({msg:"Data is sent.", "status": "SUCCESS"});
@@ -210,9 +207,7 @@ console.log('a user ' +  user.username + ' logout');
 			// console.log(" ==== " + socketList[data.receiver].id);
 			// socketList[data.sender].to(socketList[data.receiver].id).emit('sendMsg', data );
 
-			const to = data.receiver,
-            message = data.message;
-
+			const to = data.receiver;
 			if(socketList.hasOwnProperty(to)){
 				socketList[to].emit('sendMsg', data);
 			}
