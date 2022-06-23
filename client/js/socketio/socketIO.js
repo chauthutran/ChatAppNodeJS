@@ -96,7 +96,10 @@ function SocketIO( _username ) {
 
 		
 		me.socket.on('sendMsg', data => {
-			me.chatFormObj.outputMessage( data );
+			if( data.sender == me.username || data.receiver == me.username )
+			{
+				me.chatFormObj.outputMessage( data );
+			}
 		})
 
 

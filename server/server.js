@@ -1,8 +1,7 @@
 
 const express = require('express');
-var SocketIOFileUpload = require("socketio-file-upload")
-const fs = require('fs')
-
+const bodyParser = require("body-parser");
+const fetch = require('node-fetch');
 
 const mongoose = require("mongoose");
 const MessagesCollection = require("./models/messages");
@@ -15,6 +14,7 @@ mongoose.connect(mongoDB).then(() => {
 }).catch(err => console.log(err))
 
 
+let socketList = {};
 const onlineUsers = [];
 
 // =======================================================================================================
@@ -22,25 +22,86 @@ const onlineUsers = [];
 // ====================
 
 const app = express();
-app.use(SocketIOFileUpload.router);
-app.use(express.static(__dirname + '/uploads'))
+// app.use(express.static(__dirname + '/uploads'))
+//Here we are configuring express to use body-parser as middle-ware.
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.json());
 app.get('/', (req, res) => {
-	res.sendFile(__dirname + "/uploads/" + req.query.path);
-})
-app.get('/deleteimage', (req, res) => {
-	res.json(req.query.path);
-	fs.unlinkSync(__dirname + "/uploads/" + req.query.path, () => {
-		
-	})
+	res.send('hello world');
 })
 
-app.get('/socket.io/', (req, res) => {
-	console.log("/socket.io/");
-	res.json(req.query.path);
-	// fs.unlinkSync(__dirname + "/uploads/" + req.query.path, () => {
-		
-	// })
+/** 
+ * Example URL: retrieveData?username1=test&username2=test3  
+ * */
+app.get("/data", (req, res) => {
+	const username1 = req.query.username1;
+	const username2 = req.query.username2;
+
+	if( username1 == undefined || username2 == undefined )
+	{
+		res.send( {status: "ERROR", msg: "Missing parameters 'username1' and 'username2'"} );
+	}
+	else
+	{
+		MessagesCollection.find().or([
+			{ sender: username1, receiver: username2 },
+			{ sender: username2, receiver: username1 }
+		])
+		.sort({ datetime: 1 })
+		.then(( result ) => {
+			res.send( result );
+			// socket.emit('messageList', { messages: result, users: users } );
+		})
+	}
+	
+
+	// res.send( res.json() );
 })
+
+app.post('/data', function(req, res){
+	// res(res.body);
+
+	const message = new MessagesCollection( req.body );
+	// Save message to mongodb
+	message.save().then(() => {
+		// After saving message to server
+		// socket.broadcast.emit('sendMsg', data );
+
+		;
+		message.receiver;
+
+		if( socketList[message.sender] != undefined )
+		{
+			socketList[message.sender].emit( )
+		}
+		
+
+		console.log("---------- Data is sent.");
+		res.send({msg:"Data is sent.", "status": "SUCCESS"});
+	})
+});
+
+
+// app.get('/socket.io/', (req, res) => {
+// 	console.log("/socket.io/");
+// 	res.json(req.query.path);
+// })
+
+// app.post('/process_post', urlencodedParser, function (req, res) {  
+// 	// Prepare output in JSON format  
+// 	response = {  
+// 		first_name:req.body.first_name,  
+// 		last_name:req.body.last_name  
+// 	};  
+// 	console.log(response);  
+// 	res.end(JSON.stringify(response));  
+//  })  
+
+
+// // add router in the Express app.
+// app.use("/", router);
+
+
 // ====================
 // END - Create APP
 // =======================================================================================================
@@ -78,9 +139,15 @@ const io = require("socket.io")(server, {
 io.on('connection', socket => {
 
 	console.log("------ Connected to server : " + socket.id );
+
 	
 	socket.on('username', (username) => {
+		
+	console.log("------ Connected to server : " + socket.id  + " --- username : " + username );
 
+		socketList[username] = socket;
+		console.log(" ----------- socketList : ");
+// console.log(socketList);
 		onlineUsers.push( username );
 
 		UsersCollection.find({username: username}).then(( list ) => {
@@ -138,7 +205,17 @@ console.log('a user ' +  user.username + ' logout');
 		// Save message to mongodb
 		message.save().then(() => {
 			// After saving message to server
-			socket.broadcast.emit('sendMsg', data );
+			// socket.broadcast.emit('sendMsg', data );
+			
+			// console.log(" ==== " + socketList[data.receiver].id);
+			// socketList[data.sender].to(socketList[data.receiver].id).emit('sendMsg', data );
+
+			const to = data.receiver,
+            message = data.message;
+
+			if(socketList.hasOwnProperty(to)){
+				socketList[to].emit('sendMsg', data);
+			}
 		})
 	});
 
@@ -152,34 +229,6 @@ console.log('a user ' +  user.username + ' logout');
 		io.emit('exit', onlineUsers ); 
 	});
 
-	// socket.on('reconnect', function() {
-	// 	console.log('reconnect fired!');
-	// });
-
-	
-	// ------------------------------------------------------------------------------
-	// Upload files
-	// ---------------------
-
-	// Make an instance of SocketIOFileUpload and listen on this socket:
-	var uploader = new SocketIOFileUpload();
-	uploader.dir = "uploads";
-	uploader.listen(socket);
-
-	// Do something when a file is saved:
-	uploader.on("saved", function (event) {
-		event.file.clientDetail.name = event.file.name; 
-	});
-
-	// Error handler:
-	uploader.on("error", function (event) {
-		console.log("Error from uploader", event);
-	});
-
-	// ------------------------------------------------------------------------------
-	// END - Upload files
-	// ---------------------
-	
 });
 
 
