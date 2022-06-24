@@ -1,11 +1,12 @@
 
-function ChatForm( _username, _socket )
+function ChatForm( _username, _socket, _sockeObj )
 {
     var me = this;
 
     me.curUser = {};
     me.username = _username;
     me.socket = _socket;
+    me.sockeObj = _sockeObj;
     me.selectedUser;
 
 
@@ -50,6 +51,12 @@ function ChatForm( _username, _socket )
             me.emojjiDashboardTag.find("ul").append(liTag);
         }
 
+        // Get contact list of username
+        $.get( serverURL + "/user?username=" + me.username,{}, function( userProfile ){
+            me.curUser = userProfile.curUser;
+            me.outputUsers( userProfile );
+        });
+
         me.setUp_Events();
     }
 
@@ -85,6 +92,7 @@ function ChatForm( _username, _socket )
         me.logoutBtnTag.click(function() {
             const leaveRoom = confirm('Are you sure you want to log-out ?');
             if (leaveRoom) {
+                me.socket.off("connect_error");
                 window.location = 'index.html';
             } 
             else {
@@ -117,7 +125,8 @@ function ChatForm( _username, _socket )
 				const reader = new FileReader();
 				reader.addEventListener( "load", () => {
 					const type = ( file.type.indexOf("image/") == 0 ) ? "IMAGE" : "FILE";
-					const data = Utils.formatMessage( me.curUser.username, me.selectedUser.username, reader.result, type, file.name );
+					// const data = Utils.formatMessage( me.curUser.username, me.selectedUser.username, reader.result, type, file.name );
+                    const data = Utils.formatMessage( me.curUser.username, me.selectedUser.username, reader.result, type, file.name );
 
                     if( !me.socket.connected )
                     {
@@ -125,7 +134,15 @@ function ChatForm( _username, _socket )
                     }
                     else
                     {
-                        me.socket.emit('getMsg', data );
+                        // me.socket.emit('getMsg', data );
+
+                        me.socket.emit("private message", data );
+
+                        if( me.selectedUser.messages == undefined )
+                        {
+                            me.selectedUser.messages = [];
+                        }
+                        me.selectedUser.messages.push(data);
                     }
 
 					me.outputMessage( data );
@@ -183,6 +200,15 @@ function ChatForm( _username, _socket )
 			
 			me.chatViewTag.show();
 			me.initChatMsgTag.hide();
+            me.socket.auth = { username: me.username };
+            // me.socket.connect();
+
+            // me.curUser.userID = me.sockeObj.users[me.username];
+            // me.userListTag.find("li").each( function(){
+            //     var userInfo = $(this).attr("user");
+
+            // })
+
 			me.socket.emit('loadMessageList', { username1: me.username, username2: me.selectedUser.username } );
 		})
 	}
@@ -210,11 +236,21 @@ function ChatForm( _username, _socket )
 			return false;
 		}
 
-		const data = Utils.formatMessage( me.curUser.username, me.selectedUser.username, msg );
+		// const data = Utils.formatMessage( me.curUser.username, me.selectedUser.username, msg );
+        const data = Utils.formatMessage( me.curUser.username, me.selectedUser.username, msg );
+        console.log(data);
 		if( me.socket.connected )
 		{
 			// Emit message to server
-			me.socket.emit('getMsg', data );
+			// me.socket.emit('getMsg', data );
+
+            me.socket.emit("private message", data);
+
+            if( me.selectedUser.messages == undefined )
+            {
+                me.selectedUser.messages = [];
+            }
+            me.selectedUser.messages.push(data);
 		}
 		else
 		{
