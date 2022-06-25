@@ -13,6 +13,7 @@ function ChatForm( _username, _socket, _sockeObj )
     // ------------------------------------------------------------------------
     // HTML Tags
 
+    me.curUserDivTag = $("#curUserDiv");
     me.curUsernameTag = $("#curUsername");
     me.curUserIconTag = $("#curUserIcon");
     me.sendBtnTag = $("#sendBtn");
@@ -62,6 +63,7 @@ function ChatForm( _username, _socket, _sockeObj )
 
     me.setCurrentUserInfo = function()
     {
+        me.curUserDivTag.attr(`username="${me.curUser.username}"`);
 	    me.curUsernameTag.html( me.curUser.fullName );
 
         // For curUser icon background-color
@@ -125,7 +127,6 @@ function ChatForm( _username, _socket, _sockeObj )
 				const reader = new FileReader();
 				reader.addEventListener( "load", () => {
 					const type = ( file.type.indexOf("image/") == 0 ) ? "IMAGE" : "FILE";
-					// const data = Utils.formatMessage( me.curUser.username, me.selectedUser.username, reader.result, type, file.name );
                     const data = Utils.formatMessage( me.curUser.username, me.selectedUser.username, reader.result, type, file.name );
 
                     if( !me.socket.connected )
@@ -136,7 +137,7 @@ function ChatForm( _username, _socket, _sockeObj )
                     {
                         // me.socket.emit('getMsg', data );
 
-                        me.socket.emit("private message", data );
+                        me.socket.emit("private_message", data );
 
                         if( me.selectedUser.messages == undefined )
                         {
@@ -150,6 +151,7 @@ function ChatForm( _username, _socket, _sockeObj )
 				reader.readAsDataURL( file );
             }
         })
+
     }
 
 
@@ -180,7 +182,7 @@ function ChatForm( _username, _socket, _sockeObj )
                                     <div class="about">
                                         <div class="name">${user.fullName}</div>
                                         <div class="status">
-                                            <i class="fa fa-circle ${status}"></i> ${status}
+                                            <i class="fa fa-circle ${status}"></i> <span>${status}</span>
                                         </div>
                                     </div>
                                 </li>`);
@@ -195,30 +197,34 @@ function ChatForm( _username, _socket, _sockeObj )
 	// Select an user
     me.setupEvent_UserItemOnClick = function( userTag ) {
 		userTag.click( function(e){
-			me.selectedUser = JSON.parse( userTag.attr("user") ); 
+            me.socket.auth = { username: me.username };
 
-			
+            me.selectedUser = JSON.parse( userTag.attr("user") ); 
 			me.chatViewTag.show();
 			me.initChatMsgTag.hide();
-            me.socket.auth = { username: me.username };
-            // me.socket.connect();
 
-            // me.curUser.userID = me.sockeObj.users[me.username];
-            // me.userListTag.find("li").each( function(){
-            //     var userInfo = $(this).attr("user");
-
-            // })
-
-			me.socket.emit('loadMessageList', { username1: me.username, username2: me.selectedUser.username } );
+			me.socket.emit('get_message_list', { username1: me.username, username2: me.selectedUser.username } );
 		})
 	}
    
-    me.updateUserStatus = function( statusData )
-    {
-        me.userListTag.find(`li#${statusData.username}`).find("div.status > i")
-            .removeClass("online")
-            .removeClass("offline")
-            .addClass( statusData.status );
+    // me.updateUserStatus = function( statusData )
+    // {
+    //     me.userListTag.find(`li#${statusData.username}`).find("div.status > i")
+    //         .removeClass("online")
+    //         .removeClass("offline")
+    //         .addClass( statusData.status );
+    // }
+
+    me.setUserStatus = function(user) {
+        let userTag = $(`[username="${user.username}"]`);
+        if( userTag.length > 0 )
+        {
+            var statusTag = userTag.find("div.status");
+            const status = user.connected ? "online" : "offline";
+            statusTag.find("i").removeClass("offline").removeClass("online").addClass(status);
+            statusTag.find("span").html(status);
+        }
+        
     }
 
 
@@ -244,7 +250,7 @@ function ChatForm( _username, _socket, _sockeObj )
 			// Emit message to server
 			// me.socket.emit('getMsg', data );
 
-            me.socket.emit("private message", data);
+            me.socket.emit("private_message", data);
 
             if( me.selectedUser.messages == undefined )
             {

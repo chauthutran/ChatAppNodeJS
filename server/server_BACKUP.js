@@ -114,7 +114,7 @@ console.log('a user ' +  user.username + ' logout');
 		// users[socket.id] = data.userId;
 	});
 
-	socket.on('loadMessageList', ( users ) => {
+	socket.on('get_message_list', ( users ) => {
 		MessagesCollection.find().or([
 			{ sender: users.username1, receiver: users.username2 },
 			{ sender: users.username2, receiver: users.username1 }

@@ -2,31 +2,35 @@
 const express = require('express');
 var cors = require('cors')
 const bodyParser = require("body-parser");
-const fetch = require('node-fetch');
+
 const crypto = require("crypto");
 const randomId = () => crypto.randomBytes(8).toString("hex");
+
 const { InMemorySessionStore } = require("./clazz/sessionStore");
 const sessionStore = new InMemorySessionStore();
 
-
 const {ServerUtils} = require("./utils/utils");
 const serverUtils = new ServerUtils();
-
-
-// const { RedisSessionStore } = require("./clazz/sessionStore");
-// const sessionStore = new RedisSessionStore(redisClient);
-
 
 
 const mongoose = require("mongoose");
 const MessagesCollection = require("./models/messages");
 const UsersCollection = require("./models/users");
 
-const mongoDB = "mongodb+srv://tranchau:Test1234@cluster0.n0jz7.mongodb.net/chatApp?retryWrites=true&w=majority";
 
+// =======================================================================================================
+// Mongo Connection
+// ====================
+
+const mongoDB = "mongodb+srv://tranchau:Test1234@cluster0.n0jz7.mongodb.net/chatApp?retryWrites=true&w=majority";
 mongoose.connect(mongoDB).then(() => {
 	console.log("------------- mongo connected ");
 }).catch(err => console.log(err))
+
+// ====================
+// Mongo Connection
+// =======================================================================================================
+
 
 
 let socketList = {};
@@ -102,12 +106,15 @@ app.post('/data', function(req, res){
 		// After saving message to server
 		// socket.broadcast.emit('sendMsg', data );
 
+		// const to = serverUtils.findItemFromList( users, data.receiver, "username");
+		// if( to != undefined )
+		// {
+		// 	socketList[to].emit( 'sendMsg', data );
+		// }
 		const to = data.receiver;
 		if(socketList.hasOwnProperty(to)){
 			socketList[to].emit( 'sendMsg', data );
 		}
-
-		console.log("---------- Data is sent.");
 		res.send({msg:"Data is sent.", "status": "SUCCESS"});
 	})
 });
@@ -142,44 +149,41 @@ const io = require("socket.io")(server, {
 // =======================================================================================================
 
 
-
-
 io.use((socket, next) => {
+
 	try {
-
-		// console.log( " ========================================== username init : " );
-		// console.log( socket.handshake.auth ) ;
-	/** Create two random values:
-			1. a session ID, private, which will be used to authenticate the user upon reconnection
-			2. a user ID, public, which will be used as an identifier to exchange messages
-	*/
-
-	const sessionID = socket.handshake.auth.sessionID;
-	if (sessionID) {
-		// find existing session
-		const session = sessionStore.findSession(sessionID);
-
-		if (session) {
-			socket.sessionID = sessionID;
-			socket.userID = session.userID;
-			socket.username = session.username;
-			return next();
+		/** Create two random values:
+				1. a session ID, private, which will be used to authenticate the user upon reconnection
+				2. a user ID, public, which will be used as an identifier to exchange messages
+		*/
+		const sessionID = socket.handshake.auth.sessionID;
+		if (sessionID) {
+			// find existing session
+			const session = sessionStore.findSession(sessionID);
+			if (session) {
+				socket.sessionID = sessionID;
+				socket.userID = session.userID;
+				socket.username = session.username;
+				return next();
+			}
 		}
+		
+		const username = socket.handshake.auth.username;
+		if (!username) {
+			return next(new Error("invalid username"));
+		}
+
+		// create new session
+		socket.sessionID = randomId();
+		socket.userID = randomId();
+		socket.username = username;
+
 	}
-	const username = socket.handshake.auth.username;
-	if (!username) {
-		return next(new Error("invalid username"));
+	catch( e)
+	{
+		console.log(e);
 	}
 
-	// create new session
-	socket.sessionID = randomId();
-	socket.userID = randomId();
-	socket.username = username;
-
-}catch( e)
-{
-	console.log(e);
-}
 	next();
 })
 
@@ -191,7 +195,7 @@ io.use((socket, next) => {
 
 io.on('connection', socket => {
 
-	  // persist session
+	// persist session
 	sessionStore.saveSession(socket.sessionID, {
 		userID: socket.userID,
 		username: socket.username,
@@ -206,191 +210,73 @@ io.on('connection', socket => {
 	});
 
 	// join the "userID" room
-	console.log(" join socket.userID : " + socket.userID);
 	socket.join(socket.userID);
 
 	console.log( "--- connect to  sessionID : " + socket.sessionID + " ------ userID : " + socket.userID + " ------- username: " + socket.username );
-
+	socketList[socket.username] = socket;
 
 	// fetch existing users
-	const users = [];
-	sessionStore.findAllSessions().forEach((session) => {
-		
-		// const found = serverUtils.findItemFromList( users, session, "username");
-		// if( !found )
-		// {
-			users.push({
-				userID: session.userID,
-				username: session.username,
-				connected: session.connected,
-			});
-		// }
-
-	});
-
-	// users.push( {
-	// 	userID: socket.userID,
-	// 	username: socket.username,
-	// 	connected: true,
-	// })
-
+	const users = sessionStore.getAllUsers();
 	socket.emit("users", users);
 	
 	
 	// notify existing users
-	socket.broadcast.emit("user connected", {
+	socket.broadcast.emit("user_connected", {
 		userID: socket.userID,
 		username: socket.username,
 		connected: true,
 	});
 	
+	
 	// forward the private message to the right recipient (and to other tabs of the sender)
-	socket.on("private message", (data) => {
-		// const message = new MessagesCollection( data );
-		// // Save message to mongodb
-		// message.save().then(() => {
-			
-			const users = [];
-			sessionStore.findAllSessions().forEach((session) => {
-				
-				// const found = serverUtils.findItemFromList( users, session, "username");
-				// if( !found )
-				// {
-					users.push({
-						userID: session.userID,
-						username: session.username,
-						connected: session.connected,
-					});
-				// }
-		
-			});
-			
+	socket.on("private_message", (data) => {
+		const message = new MessagesCollection( data );
+		// Save message to mongodb
+		message.save().then(() => {
+			const users = sessionStore.getAllUsers();
+			console.log( "======= data is sending .... " );
+			console.log( users );
 			const to = serverUtils.findItemFromList( users, data.receiver, "username");
 			if( to != undefined )
 			{
+				console.log("-- data sent to " + to.userID + " and " + socket.userID );
 				socket.to(to.userID).to(socket.userID).emit("sendMsg", data );
-				
-				console.log("--- data sent to " + to.userID + " and " + socket.userID);
 			}
 			else
 			{
+				console.log("-- data sent to " + socket.userID );
 				socket.to(socket.userID).emit("sendMsg", data );
 			}
-			console.log("======= private message - users list:");
-			console.log(users);
-			console.log(socket.userID);
-			console.log("--- data sent to " + socket.userID);
-		// })
+		})
 
 	});
-
-	
 
 	socket.on("disconnect", async () => {
 		const matchingSockets = await io.in(socket.userID).allSockets();
 		const isDisconnected = matchingSockets.size === 0;
 		if (isDisconnected) {
-		  // notify other users
-		  socket.broadcast.emit("user disconnected", socket.userID);
-		  // update the connection status of the session
-		  sessionStore.saveSession(socket.sessionID, {
-			userID: socket.userID,
-			username: socket.username,
-			connected: false,
-		  });
+			// notify other users
+			socket.broadcast.emit("user_disconnected", socket.username);
+			// update the connection status of the session
+			sessionStore.saveSession(socket.sessionID, {
+				userID: socket.userID,
+				username: socket.username,
+				connected: false,
+			});
 		}
 	});
 
-
-	// =====================================================================================================
-
 	
-// 	socket.on('username', (username) => {
-		
-// 	// console.log("------ Connected to server : " + socket.id  + " --- username : " + username );
-
-// 		socketList[username] = socket;
-// 		// console.log(" ----------- socketList : ");
-// // console.log(socketList);
-// 		onlineUsers.push( username );
-
-// 		UsersCollection.find({username: username}).then(( list ) => {
-// 			if( list.length > 0 )
-// 			{
-// 				const curUser = list[0]
-// 				UsersCollection.find(
-// 					{ username: { $in: curUser.contacts } }
-// 				)
-// 				.sort({ fullName: 1 })
-// 				.then(( contactList ) => {
-// 					socket.emit('contactList', { curUser: curUser, contacts: contactList, onlineList: onlineUsers });
-// 				})
-// 			}
-// 			else
-// 			{
-// 				socket.emit('wrongUserName', { msg: `Cannot find the username ${username}`});
-// 			}
-// 		});
-
-// 	});
-
-
-// 	socket.on('login', function( user ){
-		
-// 		onlineUsers.push( user.username );
-// console.log('a user ' +  user.username + ' logged');
-// 		socket.emit('userStatusUpdate', {username: user.username, status: "online"} );
-// 		// saving userId to object with socket ID
-// 		// users[socket.id] = data.userId;
-// 	});
-	
-// 	socket.on('logout', function( user ){
-		
-// 		onlineUsers.splice( onlineUsers.indexOf( user.username), 1 );
-// console.log('a user ' +  user.username + ' logout');
-// 		socket.emit('userStatusUpdate', {username: user.username, status: "offline"} );
-
-// 		// saving userId to object with socket ID
-// 		// users[socket.id] = data.userId;
-// 	});
-
-	socket.on('loadMessageList', ( users ) => {
+	socket.on('get_message_list', ( users ) => {
 		MessagesCollection.find().or([
 			{ sender: users.username1, receiver: users.username2 },
 			{ sender: users.username2, receiver: users.username1 }
 		])
 		.sort({ datetime: 1 })
 		.then(( result ) => {
-			socket.emit('messageList', { messages: result, users: users } );
+			socket.emit('message-list', { messages: result, users: users } );
 		})
 	});
-	
-	// socket.on('getMsg', (data) => {
-	// 	const message = new MessagesCollection( data );
-	// 	// Save message to mongodb
-	// 	message.save().then(() => {
-	// 		// After saving message to server
-	// 		// socket.broadcast.emit('sendMsg', data );
-			
-	// 		// console.log(" ==== " + socketList[data.receiver].id);
-	// 		// socketList[data.sender].to(socketList[data.receiver].id).emit('sendMsg', data );
-
-	// 		const to = data.receiver;
-	// 		if(socketList.hasOwnProperty(to)){
-	// 			socketList[to].emit('sendMsg', data);
-	// 		}
-	// 	})
-	// });
-
-	// socket.on('disconnect',()=> {
-	// 	for( let i=0; i <onlineUsers.length; i++ ) {
-	// 		if( onlineUsers[i].id === socket.id ){
-	// 			onlineUsers.splice(i,1); 
-	// 		}
-	// 	}
-
-	// 	io.emit('exit', onlineUsers ); 
-	// });
 
 });
 
