@@ -10,11 +10,6 @@ Utils.getParamValueFromURL = function( paramName ) {
 }
 
 
-
-Utils.getParamValueFromURL = function ( paramName ) {
-    return (new URLSearchParams(window.location.search)).get( paramName );
-}
-
 Utils.checkInternetStatusOnline = function() {
     return (navigator.onLine);
     

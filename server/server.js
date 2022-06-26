@@ -52,7 +52,7 @@ app.get('/', (req, res) => {
 })
 
 
-app.get("/user", (req, res) => {
+app.get("/users", (req, res) => {
 	UsersCollection.find({username: req.query.username}).then(( list ) => {
 		if( list.length > 0 )
 		{
@@ -62,7 +62,7 @@ app.get("/user", (req, res) => {
 			)
 			.sort({ fullName: 1 })
 			.then(( contactList ) => {
-				res.send({ curUser: curUser, contacts: contactList, onlineList: onlineUsers });
+				res.send({ curUser: curUser, contacts: contactList });
 			})
 		}
 		else
@@ -103,14 +103,6 @@ app.post('/data', function(req, res){
 	const message = new MessagesCollection( data );
 	// Save message to mongodb
 	message.save().then(() => {
-		// After saving message to server
-		// socket.broadcast.emit('sendMsg', data );
-
-		// const to = serverUtils.findItemFromList( users, data.receiver, "username");
-		// if( to != undefined )
-		// {
-		// 	socketList[to].emit( 'sendMsg', data );
-		// }
 		const to = data.receiver;
 		if(socketList.hasOwnProperty(to)){
 			socketList[to].emit( 'sendMsg', data );
@@ -157,6 +149,7 @@ io.use((socket, next) => {
 				2. a user ID, public, which will be used as an identifier to exchange messages
 		*/
 		const sessionID = socket.handshake.auth.sessionID;
+		const session = sessionStore.findSession(sessionID);
 		if (sessionID) {
 			// find existing session
 			const session = sessionStore.findSession(sessionID);
@@ -240,12 +233,12 @@ io.on('connection', socket => {
 			if( to != undefined )
 			{
 				console.log("-- data sent to " + to.userID + " and " + socket.userID );
-				socket.to(to.userID).to(socket.userID).emit("sendMsg", data );
+				io.to(to.userID).to(socket.userID).emit("sendMsg", data );
 			}
 			else
 			{
 				console.log("-- data sent to " + socket.userID );
-				socket.to(socket.userID).emit("sendMsg", data );
+				io.to(socket.userID).emit("sendMsg", data );
 			}
 		})
 
@@ -274,7 +267,7 @@ io.on('connection', socket => {
 		])
 		.sort({ datetime: 1 })
 		.then(( result ) => {
-			socket.emit('message-list', { messages: result, users: users } );
+			socket.emit('message_list', { messages: result, users: users } );
 		})
 	});
 

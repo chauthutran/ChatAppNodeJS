@@ -1,12 +1,12 @@
 
-function ChatForm( _username, _socket, _sockeObj )
+function ChatForm( _username )
 {
     var me = this;
 
     me.curUser = {};
-    me.username = _username;
-    me.socket = _socket;
     me.sockeObj = _sockeObj;
+    me.username = _username;
+    me.socket = me.sockeObj.socket;
     me.selectedUser;
 
 
@@ -55,7 +55,15 @@ function ChatForm( _username, _socket, _sockeObj )
         // Get contact list of username
         $.get( serverURL + "/user?username=" + me.username,{}, function( userProfile ){
             me.curUser = userProfile.curUser;
+
+            // Render contact list
             me.outputUsers( userProfile );
+
+            // Update the contact list status
+            me.sockeObj.users.forEach((user) => {
+				me.chatFormObj.setUserStatus(user);
+			});
+
         });
 
         me.setUp_Events();
@@ -176,13 +184,13 @@ function ChatForm( _username, _socket, _sockeObj )
                 const bgColorIcon = Utils.stringToLightColour( user.username );
                 const colorIcon = Utils.stringToDarkColour( user.username );
                 const userInfo = JSON.stringify( user );
-                const status = (  data.onlineList.indexOf( user.username ) >= 0 ) ? "online" : "offline";
+                // Set status "offline" for all users in contact list. Will update after getting online user list / OR when an user is online
 				var userTag = $(`<li class="clearfix" style="cursor:pointer;" username='${user.username}' user='${userInfo}'>
                                     <div class="user-icon" style="background-color: ${bgColorIcon}; color: ${colorIcon}">${firstChar}</div>
                                     <div class="about">
                                         <div class="name">${user.fullName}</div>
                                         <div class="status">
-                                            <i class="fa fa-circle ${status}"></i> <span>${status}</span>
+                                            <i class="fa fa-circle offline"></i> <span>offline</span>
                                         </div>
                                     </div>
                                 </li>`);
