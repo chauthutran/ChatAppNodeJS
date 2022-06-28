@@ -6,6 +6,7 @@ const fetch = require('node-fetch');
 const mongoose = require("mongoose");
 const MessagesCollection = require("./models/messages");
 const UsersCollection = require("./models/users");
+const UserManagement = require('./utils/userManagement');
 
 const mongoDB = "mongodb+srv://tranchau:Test1234@cluster0.n0jz7.mongodb.net/chatApp?retryWrites=true&w=majority";
 
@@ -22,7 +23,6 @@ const onlineUsers = [];
 // ====================
 
 const app = express();
-// app.use(express.static(__dirname + '/uploads'))
 //Here we are configuring express to use body-parser as middle-ware.
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
@@ -62,8 +62,13 @@ app.post('/data', function(req, res){
 	// res(res.body);
 
 	const data = req.body;
-	const message = new MessagesCollection( data );
+
+	// Save User to mongodb
+	const userManagement = new UserManagement( data.sender, data.receiver );
+	userManagement.createIfNotExist();
+
 	// Save message to mongodb
+	const message = new MessagesCollection( data );
 	message.save().then(() => {
 		// After saving message to server
 		// socket.broadcast.emit('sendMsg', data );
