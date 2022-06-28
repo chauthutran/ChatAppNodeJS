@@ -41,7 +41,7 @@ function ChatApp()
 
     me.init = function() {
         me.username = Utils.getParamValueFromURL("username");
-		me.initSocket();
+		// me.initSocket();
 
         // Add Emoji in Emoji Dashboard
         for( var i=0; i<emojiCodes.length; i++ )
@@ -55,6 +55,8 @@ function ChatApp()
 
         // Get contact list of username
         $.get( serverURL + "/users?username=" + me.username,{}, function( userProfile ){
+			me.initSocket();
+
             me.curUser = userProfile.curUser;
 
             // Render contact list
@@ -178,23 +180,23 @@ function ChatApp()
 		});
 
 		
-		me.socket.on("private_message", (data) => {
-			for (let i = 0; i < me.users.length; i++) {
-			  const user = me.users[i];
-			  if (user.userID === me.users[data.sender]) {
-				if( user.messages == undefined )
-				{
-					user.messages = [];
-				}
+		// me.socket.on("private_message", (data) => {
+		// 	for (let i = 0; i < me.users.length; i++) {
+		// 	  const user = me.users[i];
+		// 	  if (user.userID === me.users[data.sender]) {
+		// 		if( user.messages == undefined )
+		// 		{
+		// 			user.messages = [];
+		// 		}
 
-				user.messages.push( data );
-				if (user.username !== me.selectedUser.username ) {
-				  	user.hasNewMessages = true;
-				}
-				break;
-			  }
-			}
-		});
+		// 		user.messages.push( data );
+		// 		if (user.username !== me.selectedUser.username ) {
+		// 		  	user.hasNewMessages = true;
+		// 		}
+		// 		break;
+		// 	  }
+		// 	}
+		// });
 
 		// ---------------------------------------------------------------------------
 		// For "User" Event Listener
@@ -231,17 +233,35 @@ function ChatApp()
 		// For "Message" Event Listeners 
 
 		me.socket.on('message_list', ( data ) => {
+			// me.socket.emit("has_new_message", { sender: me.username, receiver: me.selectedUser.username, hasNewMessages: false });
 			const messages = Utils.mergeWithOfflineMessages( data.messages, data.users.username1, data.users.username2 );
 			me.outputMessageList( messages );
 		});
 		
-		me.socket.on('sendMsg', data => {
-			// if( data.sender == me.username || data.receiver == me.username )
-			// {
-			// 	me.outputMessage( data );
-			// }
+		// me.socket.on("receive_message", (data) => {
+		// 	const userTag = me.userListTag.find(`[username='${data.username}']`);
+		// 	if( userTag.length > 0 )
+		// 	{
+		// 		if ( data.username !== user.selectedUser.username ) 
+		// 		{
+		// 			if( data.hasNewMessages )
+		// 			{
+		// 				userTag.find("span").addClass("has-new-message");
+		// 			}
+		// 			else
+		// 			{
+		// 				userTag.find("span").removeClass("has-new-message");
+		// 			}
+		// 		}
+		// 	}
+		// });
 
+		me.socket.on('sendMsg', data => {
 			me.outputMessage( data );
+
+			// if ( data.username !== user.selectedUser.username ) {
+			// 	me.socket.emit("has_new_message", { username: data.receiver, hasNewMessages: false });
+			// }
 		})
 
 		me.socket.on('user_disconnected', ( username ) => {
@@ -392,7 +412,9 @@ function ChatApp()
 	// Select an user
     me.setupEvent_UserItemOnClick = function( userTag ) {
 		userTag.click( function(e){
-            me.socket.auth = { username: me.username };
+            // me.socket.auth = { username: me.username };
+     		// me.socket.connect();
+
 			
             me.selectedUser = JSON.parse( userTag.attr("user") ); 
 			me.chatWithUserTag.html( `Chat with ${me.selectedUser.fullName}` );
@@ -478,70 +500,75 @@ function ChatApp()
 
     // Output a message
     me.outputMessage = function(message) {
-        // Only remove message from localStorage if the socket is online and this message existed 
-        if( me.socket.connected )
-        { 
-            removeOfflineMessage( message ); 
-        }
 
-        var messageTag = me.chatHistoryTag.find(`ul li[id="${message.datetime}"]`);
-        if( messageTag.length > 0 ) 
-        {
-            if( messageTag.hasClass("offline") )
-            {
-                messageTag.removeClass("offline");
-            }
-        }
-        else
-        {
-            var messageTextDivTag;
-            if( message.filetype != undefined )
-            {
-                if( message.filetype == "IMAGE" )
-                {
-                    messageTextDivTag = `<img style="width: 300px;" src="${message.msg}">`;
-                }
-                else
-                {
-                    messageTextDivTag = `<a href="${message.msg}" target="_blank">${message.name}</a>`;
-                }
-            } 
-            else {
-                messageTextDivTag = `<span>${message.msg}</span>`;
-            }
-    
-    
-            const offlineClazz = ( me.socket.connected ) ? "" : "offline";
+		if( ( me.username == message.sender && me.selectedUser.username == message.receiver ) ||
+		( me.username == message.receiver && me.selectedUser.username == message.sender ) )
+		{
+			// Only remove message from localStorage if the socket is online and this message existed 
+			if( me.socket.connected )
+			{ 
+				removeOfflineMessage( message ); 
+			}
 
-            if( message.sender == me.username )
-            {
-                messageTag = $(`<li id='${message.datetime}' class="${offlineClazz}">
-                                    <div class="message-data">
-                                        <span class="message-data-time" >${DateUtils.formatDisplayDateTime(message.datetime)}</span> &nbsp; &nbsp;
-                                        <span class="message-data-name" >${message.sender}</span> <i class="fa fa-circle me"></i>
-                                        
-                                        </div>
-                                        <div class="message my-message">
-                                            ${messageTextDivTag}
-                                        </div>
-                                </li>`)
-            }
-            else
-            {
-                messageTag = $(`<li id='${message.datetime}' class="clearfix ${offlineClazz}">
-                        <div class="message-data align-right">
-                            <span class="message-data-time" >${DateUtils.formatDisplayDateTime(message.datetime)}</span> &nbsp; &nbsp;
-                            <span class="message-data-name" >${message.sender}</span> <i class="fa fa-circle me"></i>
-                        </div>
-                        <div class="message other-message float-right">
-                            ${messageTextDivTag}
-                        </div>
-                    </li>`)
-            }
+			var messageTag = me.chatHistoryTag.find(`ul li[id="${message.datetime}"]`);
+			if( messageTag.length > 0 ) 
+			{
+				if( messageTag.hasClass("offline") )
+				{
+					messageTag.removeClass("offline");
+				}
+			}
+			else
+			{
+				var messageTextDivTag;
+				if( message.filetype != undefined )
+				{
+					if( message.filetype == "IMAGE" )
+					{
+						messageTextDivTag = `<img style="width: 300px;" src="${message.msg}">`;
+					}
+					else
+					{
+						messageTextDivTag = `<a href="${message.msg}" target="_blank">${message.name}</a>`;
+					}
+				} 
+				else {
+					messageTextDivTag = `<span>${message.msg}</span>`;
+				}
+		
+		
+				const offlineClazz = ( me.socket.connected ) ? "" : "offline";
 
-            me.chatHistoryTag.find("ul").append( messageTag );
-            me.chatHistoryMsgNoTag.html( "already " + NumberUtils.formatDisplayNumber( me.chatHistoryTag.find("ul li").length ) + " messages" );
-            me.chatHistoryTag.scrollTop(me.chatHistoryTag[0].scrollHeight);
+				if( message.sender == me.username )
+				{
+					messageTag = $(`<li id='${message.datetime}' class="${offlineClazz}">
+										<div class="message-data">
+											<span class="message-data-time" >${DateUtils.formatDisplayDateTime(message.datetime)}</span> &nbsp; &nbsp;
+											<span class="message-data-name" >${message.sender}</span> <i class="fa fa-circle me"></i>
+											
+											</div>
+											<div class="message my-message">
+												${messageTextDivTag}
+											</div>
+									</li>`)
+				}
+				else
+				{
+					messageTag = $(`<li id='${message.datetime}' class="clearfix ${offlineClazz}">
+							<div class="message-data align-right">
+								<span class="message-data-time" >${DateUtils.formatDisplayDateTime(message.datetime)}</span> &nbsp; &nbsp;
+								<span class="message-data-name" >${message.sender}</span> <i class="fa fa-circle me"></i>
+							</div>
+							<div class="message other-message float-right">
+								${messageTextDivTag}
+							</div>
+						</li>`)
+				}
+
+				me.chatHistoryTag.find("ul").append( messageTag );
+				me.chatHistoryMsgNoTag.html( "already " + NumberUtils.formatDisplayNumber( me.chatHistoryTag.find("ul li").length ) + " messages" );
+				me.chatHistoryTag.scrollTop(me.chatHistoryTag[0].scrollHeight);
+			}
         }
 
 		

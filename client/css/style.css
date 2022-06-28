@@ -360,3 +360,9 @@ input.nosubmit {
   cursor: pointer;
   font-size: 20px;
 }
+
+.has-new-message:after {
+  content: ' (\0021)';
+  color: #e3659e;
+  font-weight: bold;
+}

@@ -11,6 +11,10 @@ const userSchema = new mongoose.Schema({
 	contacts: {
 		type: Array,
 		required: true
+	},
+	hasNewMessages: {
+		type: Boolean,
+		required: false
 	}
 })
 

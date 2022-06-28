@@ -244,6 +244,20 @@ io.on('connection', socket => {
 
 	});
 
+	socket.on("has_new_message", (data) => {
+		console.log("---- has_new_message : ");
+		console.log(data);
+		// Update User to mongodb
+		UsersCollection.updateOne({username: data.sender}, { hasNewMessages: data.hasNewMessages, receiver: data.receiver }).then((res) => {
+			console.log("updateOne Success");
+			console.log(res);
+			socket.broadcast.emit("receive_message", data );
+		})
+
+		// const res = UsersCollection.updateOne({username: data.username}, { hasNewMessages: data.hasNewMessages });
+		// console.log(res);
+	});
+
 	socket.on("disconnect", async () => {
 		const matchingSockets = await io.in(socket.userID).allSockets();
 		const isDisconnected = matchingSockets.size === 0;
