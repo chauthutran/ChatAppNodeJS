@@ -43,18 +43,21 @@ const UserManagement = class {
 		}
 
 		// // Save message to mongodb
-		// const user = new UsersCollection( data );
-		// user.save().then(() => {
-		// 	this.status.push({ "msg": `User "${username}" is saved.`, "status": "SUCCESS"});
-		// })
+		const user = new UsersCollection( data );
+		user.save().then(() => {
+			this.status.push({ "msg": `User "${username}" is saved.`, "status": "SUCCESS"});
+		})
 	}
 
 	updateContact( userData, contact ) {
-		console.log("======== updateContact");
-		console.log(userData.contacts);
 		userData.contacts.push( contact );
+
 		console.log(userData.contacts);
-		// UsersCollection.updateOne({ username: userData.username }, { contacts: userData.contacts });
+
+		UsersCollection.updateOne({username: userData.username}, { contacts: userData.contacts }).then((res) => {
+			this.status.push({ "msg": `Add "${contact}" to contacts of user '${userData.username}'.`, "status": "SUCCESS"});
+		})
+
 	}
 };
 

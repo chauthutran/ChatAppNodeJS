@@ -83,27 +83,6 @@ app.post('/data', function(req, res){
 	})
 });
 
-
-// app.get('/socket.io/', (req, res) => {
-// 	console.log("/socket.io/");
-// 	res.json(req.query.path);
-// })
-
-// app.post('/process_post', urlencodedParser, function (req, res) {  
-// 	// Prepare output in JSON format  
-// 	response = {  
-// 		first_name:req.body.first_name,  
-// 		last_name:req.body.last_name  
-// 	};  
-// 	console.log(response);  
-// 	res.end(JSON.stringify(response));  
-//  })  
-
-
-// // add router in the Express app.
-// app.use("/", router);
-
-
 // ====================
 // END - Create APP
 // =======================================================================================================
@@ -112,6 +91,7 @@ app.post('/data', function(req, res){
 // =======================================================================================================
 // Create server
 // ====================
+
 
 const server = require('http').Server(app);
 const clientURL = "http://localhost:8080";
@@ -142,14 +122,11 @@ io.on('connection', socket => {
 
 	console.log("------ Connected to server : " + socket.id );
 
-	
 	socket.on('username', (username) => {
 		
 	console.log("------ Connected to server : " + socket.id  + " --- username : " + username );
 
 		socketList[username] = socket;
-		console.log(" ----------- socketList : ");
-// console.log(socketList);
 		onlineUsers.push( username );
 
 		UsersCollection.find({username: username}).then(( list ) => {
@@ -175,10 +152,7 @@ io.on('connection', socket => {
 	socket.on('login', function( user ){
 		
 		onlineUsers.push( user.username );
-console.log('a user ' +  user.username + ' logged');
 		socket.emit('userStatusUpdate', {username: user.username, status: "online"} );
-		// saving userId to object with socket ID
-		// users[socket.id] = data.userId;
 	});
 	
 	socket.on('logout', function( user ){
@@ -206,16 +180,13 @@ console.log('a user ' +  user.username + ' logout');
 		const message = new MessagesCollection( data );
 		// Save message to mongodb
 		message.save().then(() => {
-			// After saving message to server
-			// socket.broadcast.emit('sendMsg', data );
-			
-			// console.log(" ==== " + socketList[data.receiver].id);
-			// socketList[data.sender].to(socketList[data.receiver].id).emit('sendMsg', data );
-
+			// Alert message to receiver if the receiver in the Chat conversation
 			const to = data.receiver;
 			if(socketList.hasOwnProperty(to)){
 				socketList[to].emit('sendMsg', data);
 			}
+
+
 		})
 	});
 
@@ -232,4 +203,14 @@ console.log('a user ' +  user.username + ' logout');
 });
 
 
-server.listen(3111, () => console.log(`Server running on port 3111`));
+// server.listen(3111, () => console.log(`Server running on port 3111`));
+
+// server.listen("localhost:3111/ws/chat", () => console.log(`Server running on localhost:3111/ws/chat`));
+
+// const { host } = new URL('localhost:3111');
+
+server.listen(3111, () => console.log(`Server running at localhost:3111/ws/chat`));
+
+// server.listen.apply("localhost:3111/ws/chat", function(){
+// 	onsole.log(`Server running on localhost:3111/ws/chat`)
+// })

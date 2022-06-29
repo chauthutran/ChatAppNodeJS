@@ -18,7 +18,8 @@ function SocketIO( _username ) {
             extraHeaders: {
                 "Access-Control-Allow-Origin": "origin-list"
             }
-			// , transports: ['websocket', 'polling', 'flashsocket']
+			// ,path: '/ws/chat'
+			// // , transports: ['websocket', 'polling', 'flashsocket']
         });
 
         me.chatFormObj = new ChatForm( me.username, me.socket );
