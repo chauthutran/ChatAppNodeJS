@@ -250,9 +250,6 @@ io.on('connection', socket => {
 	});
 
 	socket.on("has_new_message", ({userData, contactName, hasNewMessages}) => {
-		console.log("---- has_new_message : ");
-		console.log({userData, contactName, hasNewMessages});
-
 		for( var i=0; i< userData.contacts.length; i++ )
 		{
 			if( userData.contacts[i].contactName == contactName )
@@ -264,21 +261,11 @@ io.on('connection', socket => {
 		
 		// Update User to mongodb
 		UsersCollection.updateOne({username: userData.username}, { contacts: userData.contacts }).then((res) => {
-			// console.log(userData);
-
-			// const to = serverUtils.findItemFromList( users, userData.username, "username");
-			// socket.broadcast.emit("receive_message", userData);
-			// socket.to(to.userID).emit("receive_message", userData );
-
 			const to = userData.username;
 			if(socketList.hasOwnProperty(to)){
 				socketList[to].emit( 'receive_message', userData );
 			}
 			
-			
-			console.log(" ===========  users ");
-			console.log( userData );
-			// console.log(" --- updateOne Success to " + to.userID + " and " + socket.userID);
 		})
 	});
 
