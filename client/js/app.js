@@ -1,3 +1,4 @@
+// const { find } = require("../../server/models/messages");
 
 function ChatApp()
 {
@@ -133,14 +134,14 @@ function ChatApp()
 		  
 		me.socket.on("disconnect", () => {
 
-			var usernameList = Object.keys( me.users );
-			for( var i=0; i<usernameList.length;i++ )
-			{
-				var user = me.users[usernameList[i]]
-				if (user.self) {
-					user.connected = false;
-				  }
-			} 
+			// var usernameList = Object.keys( me.users );
+			// for( var i=0; i<usernameList.length;i++ )
+			// {
+			// 	var user = me.users[usernameList[i]]
+			// 	if (user.self) {
+			// 		user.connected = false;
+			// 	}
+			// } 
 
 		});
 
@@ -203,18 +204,18 @@ function ChatApp()
 
 		me.socket.on("users", (_users) => {
 			_users.forEach((user) => {
-				var keys = Object.keys(me.users);
-				for (let i = 0; i < keys.length; i++) {
-					const existingUser = me.users[keys[i]];
-					if (existingUser.userID === user.userID) {
-						existingUser.connected = user.connected;
-						return;
-					}
-				}
+				// var keys = Object.keys(me.users);
+				// for (let i = 0; i < keys.length; i++) {
+				// 	const existingUser = me.users[keys[i]];
+				// 	if (existingUser.userID === user.userID) {
+				// 		existingUser.connected = user.connected;
+				// 		return;
+				// 	}
+				// }
 
-				user.self = ( user.userID === me.socket.userID );
-				me.initReactiveProperties(user);
-				me.users[user.username] = user;
+				// user.self = ( user.userID === me.socket.userID );
+				// me.initReactiveProperties(user);
+				// me.users[user.username] = user;
 
 				me.setUserStatus(user);
 			});
@@ -233,35 +234,47 @@ function ChatApp()
 		// For "Message" Event Listeners 
 
 		me.socket.on('message_list', ( data ) => {
-			// me.socket.emit("has_new_message", { sender: me.username, receiver: me.selectedUser.username, hasNewMessages: false });
 			const messages = Utils.mergeWithOfflineMessages( data.messages, data.users.username1, data.users.username2 );
 			me.outputMessageList( messages );
+			me.userListTag.find(`[username='${me.selectedUser.username}']`).find("span").removeClass("has-new-message");
+
+			me.socket.emit("has_new_message", { userData: me.curUser, contactName: me.selectedUser.username, hasNewMessages: false });
+
 		});
 		
-		// me.socket.on("receive_message", (data) => {
-		// 	const userTag = me.userListTag.find(`[username='${data.username}']`);
-		// 	if( userTag.length > 0 )
-		// 	{
-		// 		if ( data.username !== user.selectedUser.username ) 
-		// 		{
-		// 			if( data.hasNewMessages )
-		// 			{
-		// 				userTag.find("span").addClass("has-new-message");
-		// 			}
-		// 			else
-		// 			{
-		// 				userTag.find("span").removeClass("has-new-message");
-		// 			}
-		// 		}
-		// 	}
-		// });
+		me.socket.on("receive_message", (userData) => {
+			const contacts = userData.contacts;
+			if( me.curUser.username == userData.username )
+			{
+				me.curUser = userData;
+			}
+
+			for( var i=0; i< contacts.length; i++ )
+			{
+				const contactInfo = contacts[i];
+				const userTag = me.userListTag.find(`[username='${contactInfo.contactName}']`);
+				if( userTag.length > 0 )
+				{
+					if( contactInfo.hasNewMessages )
+					{
+						userTag.find("span").addClass("has-new-message");
+					}
+					else
+					{
+						userTag.find("span").removeClass("has-new-message");
+					}
+				}
+			}
+		});
 
 		me.socket.on('sendMsg', data => {
 			me.outputMessage( data );
 
-			// if ( data.username !== user.selectedUser.username ) {
-			// 	me.socket.emit("has_new_message", { username: data.receiver, hasNewMessages: false });
-			// }
+			if( this.selectedUser == undefined || data.receiver != this.selectedUser.username )
+			{
+				me.socket.emit("has_new_message", { userData: me.curUser, contactName: data.sender, hasNewMessages: true });
+			}
+			
 		})
 
 		me.socket.on('user_disconnected', ( username ) => {
@@ -337,8 +350,6 @@ function ChatApp()
                     }
                     else
                     {
-                        // me.socket.emit('getMsg', data );
-
                         me.socket.emit("private_message", data );
 
                         if( me.selectedUser.messages == undefined )
@@ -385,14 +396,18 @@ function ChatApp()
 		// Add the proper list here
 		data.contacts.forEach((user) => {
 			
-			if( user.username != me.username )
+			const contactName = user.username;
+			if( contactName != me.username )
 			{
+				const found = Utils.findItemFromList( me.curUser.contacts, contactName,"contactName" );
+				const hasNewMessages = ( found && found.hasNewMessages ) ? true : false;
+
 				const firstChar = user.username.substring(0,2).toUpperCase();
-                const bgColorIcon = Utils.stringToLightColour( user.username );
-                const colorIcon = Utils.stringToDarkColour( user.username );
+                const bgColorIcon = Utils.stringToLightColour( contactName );
+                const colorIcon = Utils.stringToDarkColour( contactName );
                 const userInfo = JSON.stringify( user );
                 // Set status "offline" for all users in contact list. Will update after getting online user list / OR when an user is online
-				var userTag = $(`<li class="clearfix" style="cursor:pointer;" username='${user.username}' user='${userInfo}'>
+				var userTag = $(`<li class="clearfix" style="cursor:pointer;" username='${contactName}' user='${userInfo}'>
                                     <div class="user-icon" style="background-color: ${bgColorIcon}; color: ${colorIcon}">${firstChar}</div>
                                     <div class="about">
                                         <div class="name">${user.fullName}</div>
@@ -401,6 +416,11 @@ function ChatApp()
                                         </div>
                                     </div>
                                 </li>`);
+
+				if( hasNewMessages )
+				{
+					userTag.find(".status > span").addClass("has-new-message");
+				}
 
 				me.setupEvent_UserItemOnClick( userTag );
 				me.userListTag.append( userTag );
@@ -468,12 +488,8 @@ function ChatApp()
 		{
 			// Emit message to server
             me.socket.emit("private_message", data);
-
-            if( me.selectedUser.messages == undefined )
-            {
-                me.selectedUser.messages = [];
-            }
-            me.selectedUser.messages.push(data);
+			// me.socket.emit("has_new_message", { userData: me.selectedUser, contactName: me.curUser.username, hasNewMessages: true });
+            // me.selectedUser.messages.push(data);
 		}
 		else
 		{
@@ -501,77 +517,78 @@ function ChatApp()
     // Output a message
     me.outputMessage = function(message) {
 
-		if( ( me.username == message.sender && me.selectedUser.username == message.receiver ) ||
-		( me.username == message.receiver && me.selectedUser.username == message.sender ) )
+		if( me.selectedUser != undefined )
 		{
-			// Only remove message from localStorage if the socket is online and this message existed 
-			if( me.socket.connected )
-			{ 
-				removeOfflineMessage( message ); 
-			}
-
-			var messageTag = me.chatHistoryTag.find(`ul li[id="${message.datetime}"]`);
-			if( messageTag.length > 0 ) 
+			if( ( me.username == message.sender && me.selectedUser.username == message.receiver ) ||
+				( me.username == message.receiver && me.selectedUser.username == message.sender ) )
 			{
-				if( messageTag.hasClass("offline") )
-				{
-					messageTag.removeClass("offline");
+				// Only remove message from localStorage if the socket is online and this message existed 
+				if( me.socket.connected )
+				{ 
+					removeOfflineMessage( message ); 
 				}
-			}
-			else
-			{
-				var messageTextDivTag;
-				if( message.filetype != undefined )
+	
+				var messageTag = me.chatHistoryTag.find(`ul li[id="${message.datetime}"]`);
+				if( messageTag.length > 0 ) 
 				{
-					if( message.filetype == "IMAGE" )
+					if( messageTag.hasClass("offline") )
 					{
-						messageTextDivTag = `<img style="width: 300px;" src="${message.msg}">`;
+						messageTag.removeClass("offline");
 					}
-					else
-					{
-						messageTextDivTag = `<a href="${message.msg}" target="_blank">${message.name}</a>`;
-					}
-				} 
-				else {
-					messageTextDivTag = `<span>${message.msg}</span>`;
-				}
-		
-		
-				const offlineClazz = ( me.socket.connected ) ? "" : "offline";
-
-				if( message.sender == me.username )
-				{
-					messageTag = $(`<li id='${message.datetime}' class="${offlineClazz}">
-										<div class="message-data">
-											<span class="message-data-time" >${DateUtils.formatDisplayDateTime(message.datetime)}</span> &nbsp; &nbsp;
-											<span class="message-data-name" >${message.sender}</span> <i class="fa fa-circle me"></i>
-											
-											</div>
-											<div class="message my-message">
-												${messageTextDivTag}
-											</div>
-									</li>`)
 				}
 				else
 				{
-					messageTag = $(`<li id='${message.datetime}' class="clearfix ${offlineClazz}">
-							<div class="message-data align-right">
-								<span class="message-data-time" >${DateUtils.formatDisplayDateTime(message.datetime)}</span> &nbsp; &nbsp;
-								<span class="message-data-name" >${message.sender}</span> <i class="fa fa-circle me"></i>
-							</div>
-							<div class="message other-message float-right">
-								${messageTextDivTag}
-							</div>
-						</li>`)
+					var messageTextDivTag;
+					if( message.filetype != undefined )
+					{
+						if( message.filetype == "IMAGE" )
+						{
+							messageTextDivTag = `<img style="width: 300px;" src="${message.msg}">`;
+						}
+						else
+						{
+							messageTextDivTag = `<a href="${message.msg}" target="_blank">${message.name}</a>`;
+						}
+					} 
+					else {
+						messageTextDivTag = `<span>${message.msg}</span>`;
+					}
+			
+			
+					const offlineClazz = ( me.socket.connected ) ? "" : "offline";
+	
+					if( message.sender == me.username )
+					{
+						messageTag = $(`<li id='${message.datetime}' class="${offlineClazz}">
+											<div class="message-data">
+												<span class="message-data-time" >${DateUtils.formatDisplayDateTime(message.datetime)}</span> &nbsp; &nbsp;
+												<span class="message-data-name" >${message.sender}</span> <i class="fa fa-circle me"></i>
+												
+												</div>
+												<div class="message my-message">
+													${messageTextDivTag}
+												</div>
+										</li>`)
+					}
+					else
+					{
+						messageTag = $(`<li id='${message.datetime}' class="clearfix ${offlineClazz}">
+								<div class="message-data align-right">
+									<span class="message-data-time" >${DateUtils.formatDisplayDateTime(message.datetime)}</span> &nbsp; &nbsp;
+									<span class="message-data-name" >${message.sender}</span> <i class="fa fa-circle me"></i>
+								</div>
+								<div class="message other-message float-right">
+									${messageTextDivTag}
+								</div>
+							</li>`)
+					}
+	
+					me.chatHistoryTag.find("ul").append( messageTag );
+					me.chatHistoryMsgNoTag.html( "already " + NumberUtils.formatDisplayNumber( me.chatHistoryTag.find("ul li").length ) + " messages" );
+					me.chatHistoryTag.scrollTop(me.chatHistoryTag[0].scrollHeight);
 				}
-
-				me.chatHistoryTag.find("ul").append( messageTag );
-				me.chatHistoryMsgNoTag.html( "already " + NumberUtils.formatDisplayNumber( me.chatHistoryTag.find("ul li").length ) + " messages" );
-				me.chatHistoryTag.scrollTop(me.chatHistoryTag[0].scrollHeight);
 			}
-        }
-
-		
+		}
 	}
 
 

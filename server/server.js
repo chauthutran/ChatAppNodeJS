@@ -16,7 +16,7 @@ const serverUtils = new ServerUtils();
 const mongoose = require("mongoose");
 const MessagesCollection = require("./models/messages");
 const UsersCollection = require("./models/users");
-
+const UserManagement = require('./utils/userManagement');
 
 // =======================================================================================================
 // Mongo Connection
@@ -57,8 +57,10 @@ app.get("/users", (req, res) => {
 		if( list.length > 0 )
 		{
 			const curUser = list[0];
+			let contactNameList = curUser.contacts.map(contact => contact.contactName);
+
 			UsersCollection.find(
-				{ username: { $in: curUser.contacts } }
+				{ username: { $in: contactNameList } }
 			)
 			.sort({ fullName: 1 })
 			.then(( contactList ) => {
@@ -75,7 +77,7 @@ app.get("/users", (req, res) => {
 /** 
  * Example URL: retrieveData?username1=test&username2=test3  
  * */
-app.get("/data", (req, res) => {
+app.get("/messages", (req, res) => {
 	const username1 = req.query.username1;
 	const username2 = req.query.username2;
 
@@ -96,12 +98,16 @@ app.get("/data", (req, res) => {
 	}
 })
 
-app.post('/data', function(req, res){
+app.post('/messages', function(req, res){
 	// res(res.body);
 
 	const data = req.body;
-	const message = new MessagesCollection( data );
+
+	const userManagement = new UserManagement( data.sender, data.receiver );
+	userManagement.createIfNotExist();
+
 	// Save message to mongodb
+	const message = new MessagesCollection( data );
 	message.save().then(() => {
 		const to = data.receiver;
 		if(socketList.hasOwnProperty(to)){
@@ -124,6 +130,8 @@ app.post('/data', function(req, res){
 const server = require('http').Server(app);
 const clientURL = "http://localhost:8080";
 // const clientURL = "https://client-dev.psi-connect.org";
+// const clientURL = "https://pwa-dev.psi-connect.org";
+
 
 // =======================================================================================================
 // INIT Socket IO
@@ -149,7 +157,6 @@ io.use((socket, next) => {
 				2. a user ID, public, which will be used as an identifier to exchange messages
 		*/
 		const sessionID = socket.handshake.auth.sessionID;
-		const session = sessionStore.findSession(sessionID);
 		if (sessionID) {
 			// find existing session
 			const session = sessionStore.findSession(sessionID);
@@ -227,35 +234,52 @@ io.on('connection', socket => {
 		// Save message to mongodb
 		message.save().then(() => {
 			const users = sessionStore.getAllUsers();
-			console.log( "======= data is sending .... " );
-			console.log( users );
 			const to = serverUtils.findItemFromList( users, data.receiver, "username");
 			if( to != undefined )
 			{
 				console.log("-- data sent to " + to.userID + " and " + socket.userID );
-				io.to(to.userID).to(socket.userID).emit("sendMsg", data );
+				socket.to(to.userID).to(socket.userID).emit("sendMsg", data );
 			}
 			else
 			{
 				console.log("-- data sent to " + socket.userID );
-				io.to(socket.userID).emit("sendMsg", data );
+				socket.to(socket.userID).emit("sendMsg", data );
 			}
 		})
 
 	});
 
-	socket.on("has_new_message", (data) => {
+	socket.on("has_new_message", ({userData, contactName, hasNewMessages}) => {
 		console.log("---- has_new_message : ");
-		console.log(data);
-		// Update User to mongodb
-		UsersCollection.updateOne({username: data.sender}, { hasNewMessages: data.hasNewMessages, receiver: data.receiver }).then((res) => {
-			console.log("updateOne Success");
-			console.log(res);
-			socket.broadcast.emit("receive_message", data );
-		})
+		console.log({userData, contactName, hasNewMessages});
 
-		// const res = UsersCollection.updateOne({username: data.username}, { hasNewMessages: data.hasNewMessages });
-		// console.log(res);
+		for( var i=0; i< userData.contacts.length; i++ )
+		{
+			if( userData.contacts[i].contactName == contactName )
+			{
+				userData.contacts[i].hasNewMessages = hasNewMessages;
+				break;
+			}
+		}
+		
+		// Update User to mongodb
+		UsersCollection.updateOne({username: userData.username}, { contacts: userData.contacts }).then((res) => {
+			// console.log(userData);
+
+			// const to = serverUtils.findItemFromList( users, userData.username, "username");
+			// socket.broadcast.emit("receive_message", userData);
+			// socket.to(to.userID).emit("receive_message", userData );
+
+			const to = userData.username;
+			if(socketList.hasOwnProperty(to)){
+				socketList[to].emit( 'receive_message', userData );
+			}
+			
+			
+			console.log(" ===========  users ");
+			console.log( userData );
+			// console.log(" --- updateOne Success to " + to.userID + " and " + socket.userID);
+		})
 	});
 
 	socket.on("disconnect", async () => {
