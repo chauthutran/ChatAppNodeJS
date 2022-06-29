@@ -86,6 +86,7 @@ function ChatApp()
                 "Access-Control-Allow-Origin": "origin-list"
             },
 			autoConnect: false,
+			// path: "/ws/chat/",
 			auth: {
 				username: me.username
 			}
