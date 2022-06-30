@@ -104,17 +104,17 @@ app.post('/messages', function(req, res){
 	const data = req.body;
 
 	const userManagement = new UserManagement( data.sender, data.receiver );
-	userManagement.createIfNotExist();
-
-	// Save message to mongodb
-	const message = new MessagesCollection( data );
-	message.save().then(() => {
-		const to = data.receiver;
-		if(socketList.hasOwnProperty(to)){
-			socketList[to].emit( 'sendMsg', data );
-		}
-		res.send({msg:"Data is sent.", "status": "SUCCESS"});
-	})
+	userManagement.createIfNotExist(function( newUserData ){
+		// Save message to mongodb
+		const message = new MessagesCollection( data );
+		message.save().then(() => {
+			const to = data.receiver;
+			if(socketList.hasOwnProperty(to)){
+				socketList[to].emit( 'sendMsg', data );
+			}
+			res.send({msg:"Data is sent.", "status": "SUCCESS"});
+		})
+	});
 });
 
 // ====================
@@ -259,14 +259,37 @@ io.on('connection', socket => {
 			}
 		}
 		
-		// Update User to mongodb
-		UsersCollection.updateOne({username: userData.username}, { contacts: userData.contacts }).then((res) => {
-			const to = userData.username;
-			if(socketList.hasOwnProperty(to)){
-				socketList[to].emit( 'receive_message', userData );
+		/*** Update User to mongodb - Need to search and get userData again 
+		 * in case this "has_new_message" is called from API "/messages"
+		 * and a new user is created and need to update relationship for another user.
+		 * 
+		 * We are trying to not override the new reltionship if it is created for an existing user.
+		 * 
+		 * TODO: for param "userData" ==> Just need to use "username" is good enough.
+		*/
+		UsersCollection.find({username:userData.username}).then(( list ) => {
+			if( list.length > 0 )
+			{
+				var userInfo = list[0];
+				for( var i=0; i< userInfo.contacts.length; i++ )
+				{
+					if( userInfo.contacts[i].contactName == contactName )
+					{
+						userInfo.contacts[i].hasNewMessages = hasNewMessages;
+						break;
+					}
+				}
+
+				// Update User to mongodb
+				UsersCollection.updateOne({username: userInfo.username}, { contacts: userInfo.contacts }).then((res) => {
+					const to = userInfo.username;
+					if(socketList.hasOwnProperty(to)){
+						socketList[to].emit( 'receive_message', userInfo );
+					}
+				})
 			}
-			
-		})
+		});
+		
 	});
 
 	socket.on("disconnect", async () => {

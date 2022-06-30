@@ -8,14 +8,16 @@ const userSchema = new mongoose.Schema({
 			type: String,
 			required: true
 	},
-	contacts: {
-		type: Array,
-		required: true
-	},
-	hasNewMessages: {
-		type: Boolean,
-		required: false
-	}
+	// contacts: {
+	// 	type: Array,
+	// 	required: true
+	// },
+	contacts: [
+		{
+			contactName: String,
+			hasNewMessages: Boolean,
+		}
+	]
 })
 
 // const UsersCollection = mongoose.model('users', userSchema);
