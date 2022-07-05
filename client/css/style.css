@@ -232,7 +232,7 @@ body {
 
 /****************************************/
 
-.curUsserDiv {
+.curUserDiv {
   margin-bottom: 30px;
   padding: 20px;
 }
@@ -359,4 +359,10 @@ input.nosubmit {
   margin: 5px 15px;
   cursor: pointer;
   font-size: 20px;
+}
+
+.has-new-message:after {
+  content: ' (\0021)';
+  color: #e3659e;
+  font-weight: bold;
 }

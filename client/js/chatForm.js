@@ -1,17 +1,19 @@
 
-function ChatForm( _username, _socket )
+function ChatForm( _username )
 {
     var me = this;
 
     me.curUser = {};
+    me.sockeObj = _sockeObj;
     me.username = _username;
-    me.socket = _socket;
+    me.socket = me.sockeObj.socket;
     me.selectedUser;
 
 
     // ------------------------------------------------------------------------
     // HTML Tags
 
+    me.curUserDivTag = $("#curUserDiv");
     me.curUsernameTag = $("#curUsername");
     me.curUserIconTag = $("#curUserIcon");
     me.sendBtnTag = $("#sendBtn");
@@ -50,11 +52,26 @@ function ChatForm( _username, _socket )
             me.emojjiDashboardTag.find("ul").append(liTag);
         }
 
+        // Get contact list of username
+        $.get( serverURL + "/user?username=" + me.username,{}, function( userProfile ){
+            me.curUser = userProfile.curUser;
+
+            // Render contact list
+            me.outputUsers( userProfile );
+
+            // Update the contact list status
+            me.sockeObj.users.forEach((user) => {
+				me.chatFormObj.setUserStatus(user);
+			});
+
+        });
+
         me.setUp_Events();
     }
 
     me.setCurrentUserInfo = function()
     {
+        me.curUserDivTag.attr(`username="${me.curUser.username}"`);
 	    me.curUsernameTag.html( me.curUser.fullName );
 
         // For curUser icon background-color
@@ -85,6 +102,7 @@ function ChatForm( _username, _socket )
         me.logoutBtnTag.click(function() {
             const leaveRoom = confirm('Are you sure you want to log-out ?');
             if (leaveRoom) {
+                me.socket.off("connect_error");
                 window.location = 'index.html';
             } 
             else {
@@ -117,7 +135,7 @@ function ChatForm( _username, _socket )
 				const reader = new FileReader();
 				reader.addEventListener( "load", () => {
 					const type = ( file.type.indexOf("image/") == 0 ) ? "IMAGE" : "FILE";
-					const data = Utils.formatMessage( me.curUser.username, me.selectedUser.username, reader.result, type, file.name );
+                    const data = Utils.formatMessage( me.curUser.username, me.selectedUser.username, reader.result, type, file.name );
 
                     if( !me.socket.connected )
                     {
@@ -125,7 +143,15 @@ function ChatForm( _username, _socket )
                     }
                     else
                     {
-                        me.socket.emit('getMsg', data );
+                        // me.socket.emit('getMsg', data );
+
+                        me.socket.emit("private_message", data );
+
+                        if( me.selectedUser.messages == undefined )
+                        {
+                            me.selectedUser.messages = [];
+                        }
+                        me.selectedUser.messages.push(data);
                     }
 
 					me.outputMessage( data );
@@ -133,6 +159,7 @@ function ChatForm( _username, _socket )
 				reader.readAsDataURL( file );
             }
         })
+
     }
 
 
@@ -157,13 +184,13 @@ function ChatForm( _username, _socket )
                 const bgColorIcon = Utils.stringToLightColour( user.username );
                 const colorIcon = Utils.stringToDarkColour( user.username );
                 const userInfo = JSON.stringify( user );
-                const status = (  data.onlineList.indexOf( user.username ) >= 0 ) ? "online" : "offline";
+                // Set status "offline" for all users in contact list. Will update after getting online user list / OR when an user is online
 				var userTag = $(`<li class="clearfix" style="cursor:pointer;" username='${user.username}' user='${userInfo}'>
                                     <div class="user-icon" style="background-color: ${bgColorIcon}; color: ${colorIcon}">${firstChar}</div>
                                     <div class="about">
                                         <div class="name">${user.fullName}</div>
                                         <div class="status">
-                                            <i class="fa fa-circle ${status}"></i> ${status}
+                                            <i class="fa fa-circle offline"></i> <span>offline</span>
                                         </div>
                                     </div>
                                 </li>`);
@@ -178,21 +205,34 @@ function ChatForm( _username, _socket )
 	// Select an user
     me.setupEvent_UserItemOnClick = function( userTag ) {
 		userTag.click( function(e){
-			me.selectedUser = JSON.parse( userTag.attr("user") ); 
+            me.socket.auth = { username: me.username };
 
-			
+            me.selectedUser = JSON.parse( userTag.attr("user") ); 
 			me.chatViewTag.show();
 			me.initChatMsgTag.hide();
-			me.socket.emit('loadMessageList', { username1: me.username, username2: me.selectedUser.username } );
+
+			me.socket.emit('get_message_list', { username1: me.username, username2: me.selectedUser.username } );
 		})
 	}
    
-    me.updateUserStatus = function( statusData )
-    {
-        me.userListTag.find(`li#${statusData.username}`).find("div.status > i")
-            .removeClass("online")
-            .removeClass("offline")
-            .addClass( statusData.status );
+    // me.updateUserStatus = function( statusData )
+    // {
+    //     me.userListTag.find(`li#${statusData.username}`).find("div.status > i")
+    //         .removeClass("online")
+    //         .removeClass("offline")
+    //         .addClass( statusData.status );
+    // }
+
+    me.setUserStatus = function(user) {
+        let userTag = $(`[username="${user.username}"]`);
+        if( userTag.length > 0 )
+        {
+            var statusTag = userTag.find("div.status");
+            const status = user.connected ? "online" : "offline";
+            statusTag.find("i").removeClass("offline").removeClass("online").addClass(status);
+            statusTag.find("span").html(status);
+        }
+        
     }
 
 
@@ -210,11 +250,21 @@ function ChatForm( _username, _socket )
 			return false;
 		}
 
-		const data = Utils.formatMessage( me.curUser.username, me.selectedUser.username, msg );
+		// const data = Utils.formatMessage( me.curUser.username, me.selectedUser.username, msg );
+        const data = Utils.formatMessage( me.curUser.username, me.selectedUser.username, msg );
+        console.log(data);
 		if( me.socket.connected )
 		{
 			// Emit message to server
-			me.socket.emit('getMsg', data );
+			// me.socket.emit('getMsg', data );
+
+            me.socket.emit("private_message", data);
+
+            if( me.selectedUser.messages == undefined )
+            {
+                me.selectedUser.messages = [];
+            }
+            me.selectedUser.messages.push(data);
 		}
 		else
 		{
